@@ -101,62 +101,106 @@ canvas{display:block}
 @media (max-width:768px){
   body{overflow:hidden;height:100dvh;flex-direction:column}
 
-  /* ヘッダーをコンパクトに */
-  #header{padding:4px 8px;gap:5px;flex-wrap:nowrap;overflow-x:auto}
-  #header h1{font-size:13px;letter-spacing:1px;flex-shrink:0}
-  #year-display{font-size:12px;flex-shrink:0}
-  #btn-turn{padding:4px 10px;font-size:12px;flex-shrink:0}
-  #btn-5year{padding:3px 7px;font-size:10px;flex-shrink:0}
-  #btn-save,#btn-load{padding:3px 7px;font-size:11px;flex-shrink:0}
-  #npc-header{min-width:0;flex:1}
-  #npc-bubble{font-size:12px}
-  #crisis-indicator{font-size:10px}
+  /* ---- ヘッダー2行化 ---- */
+  #header{
+    padding:4px 8px;gap:4px;
+    flex-wrap:wrap;          /* 2行に折り返す */
+    overflow:visible;
+  }
+  /* 1行目: タイトル～危機インジケーターまで横並び */
+  #header h1{font-size:11px;letter-spacing:0;flex-shrink:0;color:#e94560}
+  #year-display{font-size:11px;flex-shrink:0}
+  #btn-turn{padding:4px 9px;font-size:11px;flex-shrink:0}
+  #btn-5year{padding:3px 6px;font-size:10px;flex-shrink:0}
+  #btn-save,#btn-load{padding:3px 6px;font-size:10px;flex-shrink:0}
+  #crisis-indicator{font-size:10px;flex-shrink:0}
   #header-preset{display:none}
 
-  /* メインエリア: タブ切り替え式 */
+  /* 2行目: OTOMOメッセージ全幅 */
+  #npc-header{
+    order:10;         /* 他要素の後ろに */
+    width:100%;       /* 全幅 → 次の行に折り返す */
+    flex-shrink:0;
+    padding:3px 8px;
+    border-radius:4px;
+    min-width:0;
+    gap:5px;
+  }
+  #npc-label{font-size:11px;letter-spacing:0;padding:0}
+  #npc-bubble{font-size:12px;white-space:normal;line-height:1.4} /* 折り返し許可 */
+
+  /* ---- メインエリア ---- */
   #main{position:relative;flex:1;overflow:hidden}
 
-  /* 各パネルをフルサイズで重ねて、タブで表示切替 */
+  /* 各パネルをフルサイズで重ねる */
   #left-panel,#center,#right-panel{
     position:absolute;inset:0;
     width:100%;height:100%;
     border:none;
-    display:none; /* JSで active クラス付与時のみ表示 */
+    display:none;
   }
   #left-panel.mob-active,#center.mob-active,#right-panel.mob-active{
     display:flex;
   }
-
-  /* 施設パネルの幅制限を解除 */
-  #right-panel{width:100%}
+  #right-panel{width:100%;flex-direction:column}
   #left-panel{width:100%}
 
-  /* リソースバーを少し大きく */
+  /* ---- right-panel内セクション切替 (mobile) ---- */
+  /* PC時は全表示、mobile時はJS制御で1セクションのみ表示 */
+  #right-facility-section,#right-tech-section,#right-log-section{
+    display:none;
+    flex-direction:column;
+    flex:1;
+    overflow:hidden;
+    min-height:0;
+  }
+  #right-facility-section.mob-sec-active,
+  #right-tech-section.mob-sec-active,
+  #right-log-section.mob-sec-active{
+    display:flex;
+  }
+  /* facility-list はflex:1でスクロール */
+  #right-facility-section #facility-list{flex:1;overflow-y:auto}
+  /* tech/log は全体スクロール */
+  #right-tech-section #tech-panel{flex:1;max-height:none;overflow-y:auto}
+  #right-log-section #log-panel{flex:1;max-height:none;overflow-y:auto}
+
+  /* リソースバー */
   .res-bar-wrap{height:28px}
   .res-name{width:44px;font-size:12px}
   .res-val{font-size:12px;width:60px}
 
-  /* 施設ボタンを少し大きく */
-  .fac-btn{padding:6px 8px;font-size:13px}
+  /* 施設ボタン */
+  .fac-btn{padding:7px 8px;font-size:13px}
   .fac-btn .fac-icon{font-size:18px;width:24px}
 
   /* スタンスボタン */
   .stance-row-btn{padding:10px 4px;font-size:12px}
 
-  /* テクノロジーパネルの高さ制限を緩和 */
-  #tech-panel{max-height:35vh}
+  /* キャンバス */
+  #canvas-wrap{flex:1;position:relative}
 
-  /* ログパネルの高さ制限 */
-  #log-panel{max-height:30vh}
+  /* マップタブの選択施設インジケーター */
+  #mob-fac-indicator{
+    position:absolute;bottom:0;left:0;right:0;z-index:10;
+    background:rgba(14,30,60,0.90);
+    border-top:1px solid #1a4a80;
+    padding:6px 12px;
+    display:flex;align-items:center;gap:8px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    min-height:36px;
+  }
+  #mob-fac-indicator .mfi-icon{font-size:20px;flex-shrink:0}
+  #mob-fac-indicator .mfi-text{font-size:12px;color:#a8d8ea;flex:1}
+  #mob-fac-indicator .mfi-hint{font-size:10px;color:#556;flex-shrink:0}
+  #mob-fac-indicator.has-fac .mfi-text{color:#e94560}
+  #mob-fac-indicator.has-fac .mfi-hint{color:#a8d8ea}
 
-  /* キャンバスラップはflex:1で埋める */
-  #canvas-wrap{flex:1}
+  /* bottom-barはインジケーターで代替するのでモバイル非表示 */
+  #bottom-bar{display:none}
 
-  /* ボトムバーはモバイルでも表示 */
-  #bottom-bar{min-height:24px;padding:3px 8px}
-  #status-msg{font-size:11px}
-
-  /* ボトムタブバー */
+  /* ---- ボトムタブバー(5タブ) ---- */
   #mobile-tabs{
     display:flex;
     background:#0f3460;
@@ -164,8 +208,8 @@ canvas{display:block}
     flex-shrink:0;
   }
   .mob-tab{
-    flex:1;padding:10px 4px 8px;
-    text-align:center;font-size:12px;
+    flex:1;padding:8px 2px 6px;
+    text-align:center;
     color:#666;cursor:pointer;
     border-top:3px solid transparent;
     transition:all 0.15s;
@@ -173,26 +217,52 @@ canvas{display:block}
     user-select:none;
   }
   .mob-tab.active{color:#a8d8ea;border-top-color:#e94560}
-  .mob-tab .mob-tab-icon{font-size:18px;display:block;line-height:1.2}
-  .mob-tab .mob-tab-label{font-size:10px;display:block}
+  .mob-tab .mob-tab-icon{font-size:16px;display:block;line-height:1.2}
+  .mob-tab .mob-tab-label{font-size:9px;display:block;margin-top:1px}
 
-  /* モーダルをフル幅に */
+  /* モーダル */
   #modal-box,#modal2-box{
-    min-width:auto;width:92vw;max-width:420px;
-    padding:14px;
+    min-width:auto;width:92vw;max-width:420px;padding:14px;
   }
   #preset-grid{grid-template-columns:1fr 1fr}
   .preset-card{padding:8px 6px}
   .preset-card h3{font-size:11px}
   .preset-card p{font-size:9px}
 
-  /* ツールチップをタッチ対応 */
+  /* ツールチップ */
   #tooltip{max-width:85vw;font-size:12px}
 }
 
-/* PC時はモバイルタブを非表示 */
+/* PC時はモバイル専用要素を非表示・right-panelを従来通り */
 @media (min-width:769px){
   #mobile-tabs{display:none}
+  #mob-fac-indicator{display:none!important}
+
+  /* right-panel: 縦にflexで全セクション表示 */
+  #right-panel{flex-direction:column}
+  #right-facility-section{
+    display:flex!important;
+    flex-direction:column;
+    flex:1;
+    min-height:0;
+    overflow:hidden;
+  }
+  #right-facility-section #facility-list{flex:1;overflow-y:auto}
+  #right-tech-section{
+    display:block!important;
+    flex-shrink:0;
+    border-top:1px solid #0f3460;
+  }
+  #right-tech-section #tech-panel{max-height:200px;overflow-y:auto}
+  #right-log-section{
+    display:flex!important;
+    flex-direction:column;
+    flex:1;
+    min-height:0;
+    border-top:1px solid #0f3460;
+    overflow:hidden;
+  }
+  #right-log-section #log-panel{flex:1;overflow-y:auto}
 }
 </style>
 </head>
@@ -221,39 +291,62 @@ canvas{display:block}
   <div id="center">
     <div id="canvas-wrap">
       <canvas id="map-canvas"></canvas>
+      <!-- モバイル: 選択施設インジケーター（タップで施設タブへ）-->
+      <div id="mob-fac-indicator" style="display:none">
+        <span class="mfi-icon">➕</span>
+        <span class="mfi-text">施設未選択 — 施設タブで選んでください</span>
+        <span class="mfi-hint">▶施設</span>
+      </div>
     </div>
     <div id="bottom-bar">
       <span id="status-msg">施設を選んでタイルに配置してください</span>
     </div>
   </div>
   <div id="right-panel">
-    <div id="sector-tabs">
-      <div class="sector-tab active" data-sector="RURAL">農村</div>
-      <div class="sector-tab" data-sector="INDU">産業</div>
-      <div class="sector-tab" data-sector="ARTS">学芸</div>
-      <div class="sector-tab" data-sector="NATU">自然</div>
+    <!-- 施設セクション -->
+    <div id="right-facility-section">
+      <div id="sector-tabs">
+        <div class="sector-tab active" data-sector="RURAL">農村</div>
+        <div class="sector-tab" data-sector="INDU">産業</div>
+        <div class="sector-tab" data-sector="ARTS">学芸</div>
+        <div class="sector-tab" data-sector="NATU">自然</div>
+      </div>
+      <div id="facility-list"></div>
     </div>
-    <div id="facility-list"></div>
-    <div class="panel-title">🔬 テクノロジー</div>
-    <div id="tech-panel"></div>
-    <div class="panel-title">📜 ログ</div>
-    <div id="log-panel"></div>
+    <!-- テクセクション -->
+    <div id="right-tech-section">
+      <div class="panel-title">🔬 テクノロジー</div>
+      <div id="tech-panel"></div>
+    </div>
+    <!-- ログセクション -->
+    <div id="right-log-section">
+      <div class="panel-title">📜 ログ</div>
+      <div id="log-panel"></div>
+    </div>
   </div>
 </div>
 
-<!-- モバイル用ボトムタブ (PC時はCSS非表示) -->
+<!-- モバイル用ボトムタブ 5分割 (PC時はCSS非表示) -->
 <div id="mobile-tabs">
-  <div class="mob-tab active" data-panel="left">
+  <div class="mob-tab active" data-panel="left" data-sec="">
     <span class="mob-tab-icon">📊</span>
-    <span class="mob-tab-label">リソース</span>
+    <span class="mob-tab-label">資源</span>
   </div>
-  <div class="mob-tab" data-panel="center">
+  <div class="mob-tab" data-panel="center" data-sec="">
     <span class="mob-tab-icon">🗺</span>
     <span class="mob-tab-label">マップ</span>
   </div>
-  <div class="mob-tab" data-panel="right">
+  <div class="mob-tab" data-panel="right" data-sec="facility">
     <span class="mob-tab-icon">🏗</span>
-    <span class="mob-tab-label">施設・ログ</span>
+    <span class="mob-tab-label">施設</span>
+  </div>
+  <div class="mob-tab" data-panel="right" data-sec="tech">
+    <span class="mob-tab-icon">🔬</span>
+    <span class="mob-tab-label">テク</span>
+  </div>
+  <div class="mob-tab" data-panel="right" data-sec="log">
+    <span class="mob-tab-icon">📜</span>
+    <span class="mob-tab-label">ログ</span>
   </div>
 </div>
 
@@ -1202,47 +1295,106 @@ function initCanvas(){
     var leftPanel=document.getElementById("left-panel");
     var centerPanel=document.getElementById("center");
     var rightPanel=document.getElementById("right-panel");
-    var panels={left:leftPanel,center:centerPanel,right:rightPanel};
+    var secFac=document.getElementById("right-facility-section");
+    var secTech=document.getElementById("right-tech-section");
+    var secLog=document.getElementById("right-log-section");
+    var indicator=document.getElementById("mob-fac-indicator");
 
     function isMobile(){return window.innerWidth<=768;}
 
+    // モバイルでright-panel内のどのセクションを表示するか
+    function applyRightSec(sec){
+      secFac.classList.toggle("mob-sec-active",sec==="facility");
+      secTech.classList.toggle("mob-sec-active",sec==="tech");
+      secLog.classList.toggle("mob-sec-active",sec==="log");
+    }
+
     function applyMobileLayout(){
       if(!isMobile()){
-        // PC: 全パネルを通常表示に戻す
-        leftPanel.style.display="";
-        centerPanel.style.display="";
-        rightPanel.style.display="";
+        // PC: 全パネル通常表示、セクション全表示
         leftPanel.classList.remove("mob-active");
         centerPanel.classList.remove("mob-active");
         rightPanel.classList.remove("mob-active");
+        secFac.classList.remove("mob-sec-active");
+        secTech.classList.remove("mob-sec-active");
+        secLog.classList.remove("mob-sec-active");
         return;
       }
-      // モバイル: アクティブタブのパネルだけ表示
-      var activePanel="left";
-      tabs.forEach(function(t){if(t.classList.contains("active"))activePanel=t.getAttribute("data-panel");});
-      leftPanel.style.display="";
-      centerPanel.style.display="";
-      rightPanel.style.display="";
-      leftPanel.classList.toggle("mob-active",activePanel==="left");
-      centerPanel.classList.toggle("mob-active",activePanel==="center");
-      rightPanel.classList.toggle("mob-active",activePanel==="right");
+      // 現在のアクティブタブを読む
+      var activeTab=null;
+      tabs.forEach(function(t){if(t.classList.contains("active"))activeTab=t;});
+      if(!activeTab)return;
+      var panel=activeTab.getAttribute("data-panel");
+      var sec=activeTab.getAttribute("data-sec")||"";
+
+      leftPanel.classList.toggle("mob-active",panel==="left");
+      centerPanel.classList.toggle("mob-active",panel==="center");
+      rightPanel.classList.toggle("mob-active",panel==="right");
+
+      if(panel==="right"){
+        applyRightSec(sec);
+      }
+
+      // マップタブ: インジケーター表示
+      if(indicator){
+        indicator.style.display=(panel==="center")?"flex":"none";
+      }
     }
 
+    // タブクリック
     tabs.forEach(function(tab){
       tab.addEventListener("click",function(){
         if(!isMobile())return;
         tabs.forEach(function(t){t.classList.remove("active");});
         tab.classList.add("active");
         applyMobileLayout();
-        // マップタブに切り替えた直後にキャンバスをリサイズ
         if(tab.getAttribute("data-panel")==="center"){
           setTimeout(resizeCanvas,50);
         }
       });
     });
 
-    window.addEventListener("resize",applyMobileLayout);
+    // インジケータータップ → 施設タブへ
+    if(indicator){
+      indicator.addEventListener("click",function(){
+        var facTab=document.querySelector('.mob-tab[data-sec="facility"]');
+        if(facTab)facTab.click();
+      });
+    }
+
+    window.addEventListener("resize",function(){
+      applyMobileLayout();
+    });
     applyMobileLayout();
+
+    // 外部から呼べるようにグローバルに公開
+    window.mobSwitchToFacTab=function(){
+      var facTab=document.querySelector('.mob-tab[data-sec="facility"]');
+      if(facTab&&isMobile())facTab.click();
+    };
+    window.mobSwitchToMapTab=function(){
+      var mapTab=document.querySelector('.mob-tab[data-panel="center"]');
+      if(mapTab&&isMobile())mapTab.click();
+    };
+    window.updateMobFacIndicator=function(facKey){
+      if(!indicator)return;
+      var iconEl=indicator.querySelector(".mfi-icon");
+      var textEl=indicator.querySelector(".mfi-text");
+      var hintEl=indicator.querySelector(".mfi-hint");
+      if(facKey&&FACILITY_DEF[facKey]){
+        var def=FACILITY_DEF[facKey];
+        iconEl.textContent=def.icon;
+        textEl.textContent=def.name+" を建設（タイルをタップ）";
+        hintEl.textContent="▶施設変更";
+        indicator.classList.add("has-fac");
+      } else {
+        iconEl.textContent="➕";
+        textEl.textContent="施設未選択 — 施設タブで選んでください";
+        hintEl.textContent="▶施設";
+        indicator.classList.remove("has-fac");
+      }
+    };
+    window.isMobileLayout=isMobile;
   })();
 }
 
@@ -1286,6 +1438,10 @@ function onCanvasClick(e){
     for(const [r,v] of Object.entries(cost)) state.stocks[r]-=v;
     tile.facility=selectedFacility;tile.sector=def.sector;
     addLog("建設: "+def.name+" ["+tx+","+ty+"]","good");
+    // 建設後、施設選択を解除してインジケーターをリセット
+    selectedFacility=null;
+    if(window.updateMobFacIndicator)window.updateMobFacIndicator(null);
+    buildFacilityUI();
   }
   drawMap();updateUI();
 }
@@ -1435,6 +1591,9 @@ function buildFacilityUI(){
       buildFacilityUI();
       document.getElementById("status-msg").textContent=
         selectedFacility?d2.name+"を配置中 — タイルをクリック":"施設を選んでください";
+      // モバイル: インジケーター更新 & マップタブへ自動遷移
+      if(window.updateMobFacIndicator)window.updateMobFacIndicator(selectedFacility);
+      if(selectedFacility&&window.mobSwitchToMapTab)window.mobSwitchToMapTab();
     });})(key,def);
     el.appendChild(btn);
   }
