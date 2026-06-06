@@ -812,17 +812,14 @@ function computeDeltas(stk,sec,tech_state,counts,rUNIV,rMUSE){
   }
 
   // MAT→G 緊急輸出（港の数に比例した上限でGの不足を補填）
-  // 換算レート: 4MAT → 1G、港1基あたり上限8MAT/ターン
+  // 換算レート: 2MAT → 1G、港1基あたり上限40MAT/ターン（常時輸出）
   const MAT_EXPORT_PER_PORT=40, MAT_TO_G_RATE=2;
   let mat_export=0;
-  const G_net=stk.G+G_gain-G_maint;
-  if(G_net<0&&portCount>0){
-    const shortfall=Math.abs(G_net);                       // 不足G量
-    const exportCap=portCount*MAT_EXPORT_PER_PORT;         // 輸出可能MAT上限
-    const exportable=Math.min(exportCap,stk.MAT+MAT_prod-MAT_maint); // 在庫MAT内
-    const matNeeded=Math.min(shortfall*MAT_TO_G_RATE,Math.max(0,exportable)); // 実輸出MAT
-    mat_export=Math.max(0,matNeeded);
-    G_gain+=mat_export/MAT_TO_G_RATE;                     // G補填
+  if(portCount>0){
+    const exportCap=portCount*MAT_EXPORT_PER_PORT;
+    const exportable=Math.max(0,stk.MAT+MAT_prod-MAT_maint);
+    mat_export=Math.min(exportCap,exportable);
+    G_gain+=mat_export/MAT_TO_G_RATE;
   }
 
   const totalFac=Object.values(counts).reduce(function(a,b){return a+b;},0);
@@ -921,7 +918,7 @@ function simulateTurn(){
 
   // MAT輸出ログ
   if(d._mat_export>0){
-    addLog("港湾輸出: MAT "+Math.round(d._mat_export)+" → G "+Math.round(d._mat_export/4)+" に換算（財政補填）","warn");
+    addLog("港湾輸出: MAT "+Math.round(d._mat_export)+" → G +"+Math.round(d._mat_export/2),"good");
   }
 
   // セクター知識
@@ -1166,7 +1163,7 @@ function npcReact(events,deltas){
 var TOOLTIP_DEFS = {
   G:    {name:"財政 (G)",         formula:"収入: 工場G+農工G+美術館G / 支出: 全施設維持費×0.15"},
   FOOD: {name:"食料 (FOOD)",      formula:"産出: 農場+農工+河川 / 消費: POP×0.5/turn / 不足時は自動輸入"},
-  MAT:  {name:"資材 (MAT)",       formula:"産出: 工場+廃棄処理+森林 / 消費: 各施設維持費 / G不足時に港経由で輸出(2MAT→1G、港1基あたり30MAT/ターン上限)"},
+  MAT:  {name:"資材 (MAT)",       formula:"産出: 工場+廃棄処理+森林 / 消費: 各施設維持費 / 港があれば毎ターン自動輸出(2MAT→1G、港1基あたり40MAT/ターン上限)"},
   NRG:  {name:"エネルギー (NRG)", formula:"産出: 発電所+河川 / 消費: 工場・大学・美術館などの稼働"},
   SCI:  {name:"科学 (SCI)",       formula:"産出: 大学のみ / 用途: テクノロジー研究コスト"},
   CUL:  {name:"文化 (CUL)",       formula:"産出: 美術館+コミュニティ / 効果: KON吸収・HAP向上"},
