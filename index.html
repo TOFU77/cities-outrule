@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cities: OutRuler</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -95,6 +96,104 @@ canvas{display:block}
 #tooltip .tt-pos{color:#4ade80}
 #tooltip .tt-neg{color:#f87171}
 #tooltip .tt-neu{color:#888}
+
+/* ===== MOBILE LAYOUT (≤768px) ===== */
+@media (max-width:768px){
+  body{overflow:hidden;height:100dvh;flex-direction:column}
+
+  /* ヘッダーをコンパクトに */
+  #header{padding:4px 8px;gap:5px;flex-wrap:nowrap;overflow-x:auto}
+  #header h1{font-size:13px;letter-spacing:1px;flex-shrink:0}
+  #year-display{font-size:12px;flex-shrink:0}
+  #btn-turn{padding:4px 10px;font-size:12px;flex-shrink:0}
+  #btn-5year{padding:3px 7px;font-size:10px;flex-shrink:0}
+  #btn-save,#btn-load{padding:3px 7px;font-size:11px;flex-shrink:0}
+  #npc-header{min-width:0;flex:1}
+  #npc-bubble{font-size:12px}
+  #crisis-indicator{font-size:10px}
+  #header-preset{display:none}
+
+  /* メインエリア: タブ切り替え式 */
+  #main{position:relative;flex:1;overflow:hidden}
+
+  /* 各パネルをフルサイズで重ねて、タブで表示切替 */
+  #left-panel,#center,#right-panel{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    border:none;
+    display:none; /* JSで active クラス付与時のみ表示 */
+  }
+  #left-panel.mob-active,#center.mob-active,#right-panel.mob-active{
+    display:flex;
+  }
+
+  /* 施設パネルの幅制限を解除 */
+  #right-panel{width:100%}
+  #left-panel{width:100%}
+
+  /* リソースバーを少し大きく */
+  .res-bar-wrap{height:28px}
+  .res-name{width:44px;font-size:12px}
+  .res-val{font-size:12px;width:60px}
+
+  /* 施設ボタンを少し大きく */
+  .fac-btn{padding:6px 8px;font-size:13px}
+  .fac-btn .fac-icon{font-size:18px;width:24px}
+
+  /* スタンスボタン */
+  .stance-row-btn{padding:10px 4px;font-size:12px}
+
+  /* テクノロジーパネルの高さ制限を緩和 */
+  #tech-panel{max-height:35vh}
+
+  /* ログパネルの高さ制限 */
+  #log-panel{max-height:30vh}
+
+  /* キャンバスラップはflex:1で埋める */
+  #canvas-wrap{flex:1}
+
+  /* ボトムバーはモバイルでも表示 */
+  #bottom-bar{min-height:24px;padding:3px 8px}
+  #status-msg{font-size:11px}
+
+  /* ボトムタブバー */
+  #mobile-tabs{
+    display:flex;
+    background:#0f3460;
+    border-top:2px solid #1a4a80;
+    flex-shrink:0;
+  }
+  .mob-tab{
+    flex:1;padding:10px 4px 8px;
+    text-align:center;font-size:12px;
+    color:#666;cursor:pointer;
+    border-top:3px solid transparent;
+    transition:all 0.15s;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  .mob-tab.active{color:#a8d8ea;border-top-color:#e94560}
+  .mob-tab .mob-tab-icon{font-size:18px;display:block;line-height:1.2}
+  .mob-tab .mob-tab-label{font-size:10px;display:block}
+
+  /* モーダルをフル幅に */
+  #modal-box,#modal2-box{
+    min-width:auto;width:92vw;max-width:420px;
+    padding:14px;
+  }
+  #preset-grid{grid-template-columns:1fr 1fr}
+  .preset-card{padding:8px 6px}
+  .preset-card h3{font-size:11px}
+  .preset-card p{font-size:9px}
+
+  /* ツールチップをタッチ対応 */
+  #tooltip{max-width:85vw;font-size:12px}
+}
+
+/* PC時はモバイルタブを非表示 */
+@media (min-width:769px){
+  #mobile-tabs{display:none}
+}
 </style>
 </head>
 <body>
@@ -139,6 +238,22 @@ canvas{display:block}
     <div id="tech-panel"></div>
     <div class="panel-title">📜 ログ</div>
     <div id="log-panel"></div>
+  </div>
+</div>
+
+<!-- モバイル用ボトムタブ (PC時はCSS非表示) -->
+<div id="mobile-tabs">
+  <div class="mob-tab active" data-panel="left">
+    <span class="mob-tab-icon">📊</span>
+    <span class="mob-tab-label">リソース</span>
+  </div>
+  <div class="mob-tab" data-panel="center">
+    <span class="mob-tab-icon">🗺</span>
+    <span class="mob-tab-label">マップ</span>
+  </div>
+  <div class="mob-tab" data-panel="right">
+    <span class="mob-tab-icon">🏗</span>
+    <span class="mob-tab-label">施設・ログ</span>
   </div>
 </div>
 
@@ -1044,11 +1159,95 @@ function initCanvas(){
   canvas.addEventListener("mouseup",()=>isDragging=false);
   canvas.addEventListener("contextmenu",e=>e.preventDefault());
   canvas.addEventListener("wheel",e=>e.preventDefault(),{passive:false});
+
+  // タッチ操作（モバイル）
+  var touchStart=null,touchDragStart=null,touchMoved=false;
+  canvas.addEventListener("touchstart",function(e){
+    e.preventDefault();
+    if(e.touches.length===1){
+      var t=e.touches[0];
+      touchStart={x:t.clientX,y:t.clientY};
+      touchDragStart={x:t.clientX-offsetX,y:t.clientY-offsetY};
+      touchMoved=false;
+    }
+  },{passive:false});
+  canvas.addEventListener("touchmove",function(e){
+    e.preventDefault();
+    if(e.touches.length===1&&touchDragStart){
+      var t=e.touches[0];
+      var dx=t.clientX-touchStart.x,dy=t.clientY-touchStart.y;
+      if(Math.abs(dx)>4||Math.abs(dy)>4){
+        touchMoved=true;
+        offsetX=t.clientX-touchDragStart.x;
+        offsetY=t.clientY-touchDragStart.y;
+        drawMap();
+      }
+    }
+  },{passive:false});
+  canvas.addEventListener("touchend",function(e){
+    e.preventDefault();
+    if(!touchMoved&&touchStart){
+      // タップ = クリックとして処理
+      var fakeEvt={clientX:touchStart.x,clientY:touchStart.y};
+      onCanvasClick(fakeEvt);
+    }
+    touchStart=null;touchDragStart=null;touchMoved=false;
+  },{passive:false});
+
   window.addEventListener("resize",resizeCanvas);
+
+  // ===== MOBILE TAB SWITCHING =====
+  (function(){
+    var tabs=document.querySelectorAll(".mob-tab");
+    var leftPanel=document.getElementById("left-panel");
+    var centerPanel=document.getElementById("center");
+    var rightPanel=document.getElementById("right-panel");
+    var panels={left:leftPanel,center:centerPanel,right:rightPanel};
+
+    function isMobile(){return window.innerWidth<=768;}
+
+    function applyMobileLayout(){
+      if(!isMobile()){
+        // PC: 全パネルを通常表示に戻す
+        leftPanel.style.display="";
+        centerPanel.style.display="";
+        rightPanel.style.display="";
+        leftPanel.classList.remove("mob-active");
+        centerPanel.classList.remove("mob-active");
+        rightPanel.classList.remove("mob-active");
+        return;
+      }
+      // モバイル: アクティブタブのパネルだけ表示
+      var activePanel="left";
+      tabs.forEach(function(t){if(t.classList.contains("active"))activePanel=t.getAttribute("data-panel");});
+      leftPanel.style.display="";
+      centerPanel.style.display="";
+      rightPanel.style.display="";
+      leftPanel.classList.toggle("mob-active",activePanel==="left");
+      centerPanel.classList.toggle("mob-active",activePanel==="center");
+      rightPanel.classList.toggle("mob-active",activePanel==="right");
+    }
+
+    tabs.forEach(function(tab){
+      tab.addEventListener("click",function(){
+        if(!isMobile())return;
+        tabs.forEach(function(t){t.classList.remove("active");});
+        tab.classList.add("active");
+        applyMobileLayout();
+        // マップタブに切り替えた直後にキャンバスをリサイズ
+        if(tab.getAttribute("data-panel")==="center"){
+          setTimeout(resizeCanvas,50);
+        }
+      });
+    });
+
+    window.addEventListener("resize",applyMobileLayout);
+    applyMobileLayout();
+  })();
 }
 
 function resizeCanvas(){
-  const wrap=document.getElementById("canvas-wrap");
+  var wrap=document.getElementById("canvas-wrap");
   canvas.width=wrap.clientWidth;canvas.height=wrap.clientHeight;
   drawMap();
 }
