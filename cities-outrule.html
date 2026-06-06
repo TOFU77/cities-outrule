@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Cities: OutRuler</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',sans-serif;font-size:13px;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+#header{background:#16213e;padding:6px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #0f3460;flex-wrap:wrap}
+#header h1{font-size:16px;color:#e94560;letter-spacing:2px}
+#year-display{color:#a8d8ea;font-size:14px;font-weight:bold}
+#btn-turn{background:#e94560;border:none;color:#fff;padding:5px 16px;border-radius:4px;cursor:pointer;font-size:13px}
+#btn-turn:hover{background:#c73652}
+#btn-5year{background:#7c2030;border:none;color:#ffaaaa;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+#btn-5year:hover{background:#a02840}
+#btn-save,#btn-load{background:#0f3460;border:1px solid #1a4a80;color:#a8d8ea;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+#main{display:flex;flex:1;overflow:hidden}
+#left-panel{width:260px;background:#16213e;border-right:1px solid #0f3460;display:flex;flex-direction:column;overflow:hidden}
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#right-panel{width:240px;background:#16213e;border-left:1px solid #0f3460;display:flex;flex-direction:column;overflow:hidden}
+.panel-title{background:#0f3460;padding:5px 10px;font-size:12px;font-weight:bold;color:#a8d8ea;letter-spacing:1px}
+#resources{padding:6px;overflow-y:auto;flex:1}
+.res-group{margin-bottom:10px}
+.res-group-title{color:#e94560;font-size:11px;margin-bottom:4px;font-weight:bold}
+.res-row{display:flex;align-items:center;gap:4px;margin-bottom:5px}
+.res-name{width:38px;color:#888;font-size:11px}
+.res-bar-wrap{flex:1;background:#0a0a1a;height:24px;border-radius:4px;overflow:hidden;position:relative}
+.res-bar{position:absolute;top:0;left:0;width:0;height:67%;border-radius:4px 4px 0 0;transition:width 0.3s}
+.res-preview-bar{position:absolute;bottom:0;left:0;width:0;height:33%;border-radius:0 0 4px 4px;transition:width 0.3s;opacity:0.80;display:none}
+.res-val{width:56px;text-align:right;font-size:11px;color:#ccc}
+.res-delta{width:46px;text-align:right;font-size:10px}
+#facility-list{padding:6px;overflow-y:auto;flex:1}
+.fac-btn{display:flex;align-items:center;gap:6px;width:100%;padding:4px 6px;margin-bottom:3px;background:#0f3460;border:1px solid transparent;border-radius:4px;cursor:pointer;text-align:left;color:#ccc;font-size:12px;transition:all 0.15s}
+.fac-btn:hover{background:#1a4a80;border-color:#a8d8ea}
+.fac-btn.selected{background:#1a4a80;border-color:#e94560}
+.fac-btn .fac-icon{font-size:16px;width:20px;text-align:center}
+.fac-btn .fac-info{flex:1}
+.fac-btn .fac-cost{font-size:10px;color:#888}
+#canvas-wrap{flex:1;position:relative;overflow:hidden}
+canvas{display:block}
+#bottom-bar{background:#16213e;border-top:1px solid #0f3460;padding:4px 10px;display:flex;gap:12px;align-items:center;min-height:28px}
+#status-msg{color:#a8d8ea;font-size:12px;flex:1}
+#sector-tabs{display:flex;border-bottom:1px solid #0f3460}
+.sector-tab{flex:1;padding:5px 4px;text-align:center;cursor:pointer;font-size:11px;color:#888;border-bottom:2px solid transparent}
+.sector-tab.active{color:#e94560;border-bottom-color:#e94560}
+#log-panel{padding:6px;overflow-y:auto;flex:1;font-size:11px}
+.log-entry{padding:2px 4px;border-left:2px solid #0f3460;margin-bottom:2px;color:#aaa}
+.log-entry.event{border-left-color:#e94560;color:#ffb3b3}
+.log-entry.good{border-left-color:#4ade80;color:#b3ffcc}
+.log-entry.warn{border-left-color:#fbbf24;color:#ffe5b3}
+.log-entry.crisis{border-left-color:#ff4400;color:#ff9977;font-weight:bold}
+#tech-panel{padding:6px;overflow-y:auto;max-height:200px;border-top:1px solid #0f3460}
+.tech-btn{display:flex;align-items:center;gap:6px;width:100%;padding:4px 6px;margin-bottom:3px;background:#0a1628;border:1px solid #1a3a60;border-radius:4px;cursor:pointer;text-align:left;color:#ccc;font-size:11px}
+.tech-btn:hover:not([disabled]){background:#0f3460}
+.tech-btn[disabled]{opacity:0.5;cursor:default}
+.tech-btn.done{border-color:#4ade80;color:#4ade80}
+#npc-header{flex:1;display:flex;align-items:center;gap:8px;background:#0a1628;border:1px solid #1a3a60;border-radius:6px;padding:4px 12px;min-width:0;overflow:hidden}
+#npc-label{color:#a8d8ea;font-weight:bold;font-size:13px;white-space:nowrap;flex-shrink:0}
+#npc-bubble{color:#c0d8f0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center}
+#modal.open{display:flex}
+#modal-box{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:20px;min-width:360px;max-width:520px;max-height:90vh;overflow-y:auto}
+#modal-box h2{color:#e94560;margin-bottom:12px;font-size:16px}
+#modal-box p{color:#ccc;margin-bottom:8px;line-height:1.6;font-size:12px}
+.modal-btn{background:#0f3460;border:1px solid #1a4a80;color:#a8d8ea;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;margin-right:8px;margin-top:8px}
+.modal-btn.primary{background:#e94560;border-color:#e94560;color:#fff}
+#preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.preset-card{background:#0a1628;border:1px solid #1a3a60;border-radius:6px;padding:8px;cursor:pointer;transition:all 0.15s}
+.preset-card:hover{border-color:#a8d8ea;background:#0f2040}
+.preset-card h3{color:#a8d8ea;font-size:12px;margin-bottom:3px}
+.preset-card p{color:#666;font-size:10px}
+#crisis-indicator{display:none;color:#ff4400;font-size:11px;font-weight:bold;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+#facility-stance{padding:10px 8px 8px;border-bottom:1px solid #1a3a60;background:#0a1220}
+.stance-sec-label{color:#a8d8ea;font-size:11px;font-weight:bold;margin-bottom:7px}
+.stance-row-btns{display:flex;gap:6px}
+.stance-row-btn{flex:1;padding:8px 4px;text-align:center;border-radius:5px;cursor:pointer;font-size:11px;border:2px solid #222;background:#0a1628;color:#555;transition:all 0.15s;line-height:1.5}
+.stance-row-btn:hover{border-color:#555;color:#aaa}
+.stance-row-btn.s-active{border-color:#4ade80;background:#0f2a10;color:#4ade80}
+.stance-row-btn.s-normal{border-color:#a8d8ea;background:#0f2040;color:#a8d8ea}
+.stance-row-btn.s-light{border-color:#fbbf24;background:#1a1400;color:#fbbf24}
+.modal-btn.warn{background:#7c3000;border-color:#f97316;color:#fed7aa}
+.modal-btn.success{background:#14532d;border-color:#4ade80;color:#bbf7d0}
+#modal2{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.80);z-index:150;align-items:center;justify-content:center}
+#modal2.open{display:flex}
+#modal2-box{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:20px;min-width:360px;max-width:520px;max-height:90vh;overflow-y:auto}
+#modal2-box h2{margin-bottom:10px;font-size:15px}
+#modal2-box p{color:#ccc;margin-bottom:6px;line-height:1.6;font-size:12px}
+.tech-family-prod{color:#60a5fa}.tech-family-green{color:#4ade80}.tech-family-civic{color:#f9a8d4}
+.tech-tier{font-size:9px;background:#0a1628;border:1px solid #1a3a60;border-radius:3px;padding:1px 4px;margin-left:4px}
+#tooltip{position:fixed;display:none;background:#0d1f3c;border:1px solid #2a5a90;border-radius:7px;padding:9px 13px;font-size:11px;color:#ccc;max-width:230px;z-index:300;pointer-events:none;line-height:1.7;box-shadow:0 4px 16px #000a}
+#tooltip .tt-title{color:#a8d8ea;font-weight:bold;font-size:12px;margin-bottom:5px;border-bottom:1px solid #1a3a60;padding-bottom:3px}
+#tooltip .tt-formula{color:#667;font-size:10px;margin-bottom:5px}
+#tooltip .tt-row{display:flex;justify-content:space-between;gap:10px}
+#tooltip .tt-pos{color:#4ade80}
+#tooltip .tt-neg{color:#f87171}
+#tooltip .tt-neu{color:#888}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>CITIES: OUTRULE</h1>
+  <span id="year-display">Year 1</span>
+  <button id="btn-turn">▶ ターン進行</button>
+  <button id="btn-5year">⏩ 5年</button>
+  <button id="btn-save">保存</button>
+  <button id="btn-load">読込</button>
+  <span id="header-preset" style="color:#666;font-size:11px"></span>
+  <span id="crisis-indicator">⚠ 危機進行中</span>
+  <div id="npc-header">
+    <span id="npc-label">🏙 OTOMO:</span>
+    <span id="npc-bubble">都市を設立しましょう。</span>
+  </div>
+</div>
+
+<div id="main">
+  <div id="left-panel">
+    <div class="panel-title">📊 リソース</div>
+    <div id="resources"></div>
+  </div>
+  <div id="center">
+    <div id="canvas-wrap">
+      <canvas id="map-canvas"></canvas>
+    </div>
+    <div id="bottom-bar">
+      <span id="status-msg">施設を選んでタイルに配置してください</span>
+    </div>
+  </div>
+  <div id="right-panel">
+    <div id="sector-tabs">
+      <div class="sector-tab active" data-sector="RURAL">農村</div>
+      <div class="sector-tab" data-sector="INDU">産業</div>
+      <div class="sector-tab" data-sector="ARTS">学芸</div>
+      <div class="sector-tab" data-sector="NATU">自然</div>
+    </div>
+    <div id="facility-list"></div>
+    <div class="panel-title">🔬 テクノロジー</div>
+    <div id="tech-panel"></div>
+    <div class="panel-title">📜 ログ</div>
+    <div id="log-panel"></div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<div id="modal2"><div id="modal2-box"></div></div>
+<div id="modal" class="open">
+  <div id="modal-box">
+    <h2>Cities: OutRuler</h2>
+    <p>都市プリセットを選んでゲームを開始してください。</p>
+    <div id="preset-grid"></div>
+    <button class="modal-btn primary" id="btn-custom-start">カスタム（標準設定）</button>
+  </div>
+</div>
+
+<script>
+// ==================== FACILITY DATA ====================
+const FACILITY_DEF = {
+  FARM:   { name:"農場",           sector:"RURAL", icon:"🌾", color:"#4ade80",
+            io_base:{out:{FOOD:12},in:{MAT:1,NRG:2},labor:6}, env_sensitivity:0.18,
+            build_cost:{G:15,MAT:5}, maint_cost:{G:2,MAT:1} },
+  AGRO:   { name:"農工場",         sector:"RURAL", icon:"🌽", color:"#86efac",
+            io_base:{out:{FOOD:10,G:3,KON:0.005},in:{FOOD:3,NRG:3},labor:6}, env_sensitivity:0.10,
+            build_cost:{G:25,MAT:8}, maint_cost:{G:3,MAT:1} },
+  FACT:   { name:"工場",           sector:"INDU",  icon:"🏭", color:"#60a5fa",
+            io_base:{out:{MAT:10,G:6,KON:0.008},in:{NRG:5,FOOD:2},labor:5}, env_sensitivity:0.25,
+            build_cost:{G:200,MAT:100,NRG:25}, maint_cost:{G:20,MAT:8} },
+  POWER:  { name:"発電所",         sector:"INDU",  icon:"⚡", color:"#fbbf24",
+            io_base:{out:{NRG:12,KON:0.006},in:{MAT:5},labor:2}, env_sensitivity:0.22,
+            build_cost:{G:300,MAT:150}, maint_cost:{G:25,MAT:8} },
+  PORT:   { name:"貿易港",         sector:"INDU",  icon:"⚓", color:"#7dd3fc",
+            io_base:{out:{G:5},in:{G:8,MAT:4},labor:8}, env_sensitivity:0.04,
+            build_cost:{G:250,MAT:120}, maint_cost:{G:15,MAT:4} },
+  HOUS:   { name:"住宅・サービス", sector:"INDU",  icon:"🏠", color:"#c4b5fd",
+            io_base:{out:{HAP:0.015,KON:0.003},in:{MAT:1,G:2,FOOD:1,NRG:1},labor:1}, env_sensitivity:0.06,
+            build_cost:{G:30,MAT:15}, maint_cost:{G:2,MAT:1} },
+  WASTE:  { name:"廃棄物処理",     sector:"INDU",  icon:"♻️", color:"#a3e635",
+            io_base:{out:{MAT:2},in:{KON:0.4,NRG:3,G:4},labor:2}, env_sensitivity:-0.015,
+            build_cost:{G:500,MAT:20}, maint_cost:{G:40,MAT:2} },
+  POLICE: { name:"警察署",         sector:"INDU",  icon:"🚔", color:"#f472b6",
+            io_base:{out:{},in:{KON:1,G:8},labor:3}, env_sensitivity:0.0,
+            build_cost:{G:200,MAT:10}, maint_cost:{G:5,MAT:1} },
+  EPA:    { name:"環境対策局",     sector:"INDU",  icon:"🌿", color:"#34d399",
+            io_base:{out:{},in:{KON:1.5,G:10,SCI:3},labor:2}, env_sensitivity:-0.02,
+            build_cost:{G:100,MAT:25}, maint_cost:{G:6,MAT:2} },
+  UNIV:   { name:"大学",           sector:"ARTS",  icon:"🎓", color:"#a78bfa",
+            io_base:{out:{SCI:8},in:{G:100,FOOD:2,NRG:15},labor:10}, env_sensitivity:0.015,
+            build_cost:{G:600,MAT:200}, maint_cost:{G:80,MAT:15} },
+  MUSE:   { name:"美術館・劇場",   sector:"ARTS",  icon:"🎭", color:"#f9a8d4",
+            io_base:{out:{CUL:5,G:3},in:{G:6,FOOD:2,NRG:6},labor:8}, env_sensitivity:0.008,
+            build_cost:{G:70,MAT:25}, maint_cost:{G:8,MAT:4} },
+  COMM:   { name:"コミュニティ",   sector:"ARTS",  icon:"🏛️", color:"#fde68a",
+            io_base:{out:{CUL:1},in:{G:4,NRG:1},labor:4}, env_sensitivity:0.0,
+            build_cost:{G:40,MAT:12}, maint_cost:{G:3,MAT:1} },
+  FOREST: { name:"森林",           sector:"NATU",  icon:"🌲", color:"#16a34a",
+            io_base:{out:{MAT:0.8,CUL:0.1},in:{KON:0.08},labor:1}, env_sensitivity:0.008,
+            build_cost:{G:10,MAT:4}, maint_cost:{G:0.5,MAT:0} },
+  RIVER:  { name:"河川・漁場",     sector:"NATU",  icon:"🌊", color:"#38bdf8",
+            io_base:{out:{FOOD:1.5,NRG:1},in:{},labor:1}, env_sensitivity:0.008,
+            build_cost:{G:20,MAT:8}, maint_cost:{G:1.5,MAT:1} },
+};
+
+// family: PROD/GREEN/CIVIC  tier: 1-4
+const TECH_TREE = {
+  T_IRR:     { name:"灌漑・導水",   family:"PROD",  tier:1, baseSCI:150,baseG:300,
+               effect:[{target:"FARM",type:"mult",key:"efficiency",value:1.12}] },
+  T_GRID:    { name:"送電網最適化", family:"PROD",  tier:2, baseSCI:200,baseG:400,
+               effect:[{target:"POWER",type:"mult",key:"efficiency",value:1.15}] },
+  T_EDU:     { name:"教育インフラ", family:"CIVIC", tier:1, baseSCI:300,baseG:600,
+               effect:[{target:"SECTOR:ARTS",type:"mult",key:"efficiency",value:1.12}] },
+  T_STEWARD: { name:"生態系保全",   family:"GREEN", tier:1, baseSCI:180,baseG:350,
+               effect:[{target:"GLOBAL",type:"add",key:"env_recovery_rate",value:0.012}] },
+};
+
+const NAMEBANKS = {
+  PROD:["精密農業","効率化工程","産業IoT","サプライチェーン最適化","CNC高度化","スマートロジスティクス","素材科学","製造自動化","循環型生産"],
+  GREEN:["都市農法","ゼロエミッション","炭素固定","再生可能エネルギー","グリーンインフラ","生態回廊","カーボンネット","土壌再生","廃熱回収"],
+  CIVIC:["市民参加型計画","オープンサイエンス","教育格差是正","ナッジ設計","文化的包摂","データガバナンス","多様な働き方","社会的共通資本"]
+};
+const TECH_SUFFIXES = {1:"（基礎）",2:"（応用）",3:"（高度）",4:"（革新）"};
+const TECH_EFFECTS_TEMPLATE = {
+  PROD:[{target:"FACT",type:"mult",key:"efficiency",value:0},{target:"GLOBAL",type:"mult",key:"env_damage",value:0}],
+  GREEN:[{target:"GLOBAL",type:"add",key:"env_recovery_rate",value:0},{target:"GLOBAL",type:"mult",key:"NRG_use_eff",value:0}],
+  CIVIC:[{target:"SECTOR:ARTS",type:"mult",key:"efficiency",value:0},{target:"GLOBAL",type:"add",key:"cul_absorb_kon",value:0}]
+};
+
+const EPIGRAPHS = [
+  {text:"都市とは石に書かれた歴史である。",author:"ジョン・ラスキン",url:"https://ja.wikipedia.org/wiki/%E3%82%B8%E3%83%A7%E3%83%B3%E3%83%BB%E3%83%A9%E3%82%B9%E3%82%AD%E3%83%B3"},
+  {text:"都市は人々が集まる場所だ。そして人々は、集まることによって初めて人間になる。",author:"ジェーン・ジェイコブズ",url:"https://ja.wikipedia.org/wiki/%E3%82%B8%E3%82%A7%E3%83%BC%E3%83%B3%E3%83%BB%E3%82%B8%E3%82%A7%E3%82%A4%E3%82%B3%E3%83%96%E3%82%BA"},
+  {text:"都市の形は、そこに住む人々の夢を映す鏡である。",author:"ケビン・リンチ",url:"https://ja.wikipedia.org/wiki/%E3%82%B1%E3%83%93%E3%83%B3%E3%83%BB%E3%83%AA%E3%83%B3%E3%83%81"},
+  {text:"文明の尺度は、それが最も弱い者をどう扱うかで測られる。",author:"マハトマ・ガンジー",url:"https://ja.wikipedia.org/wiki/%E3%83%9E%E3%83%8F%E3%83%88%E3%83%9E%E3%83%BB%E3%82%AC%E3%83%B3%E3%82%B8%E3%83%BC"},
+  {text:"建築は凍れる音楽である。",author:"フリードリヒ・シェリング",url:"https://ja.wikipedia.org/wiki/%E3%83%95%E3%83%AA%E3%83%BC%E3%83%89%E3%83%AA%E3%83%92%E3%83%BB%E3%82%B7%E3%82%A7%E3%83%AA%E3%83%B3%E3%82%B0"},
+  {text:"環境を守ることは、未来の人々への最高の贈り物だ。",author:"パトリック・ゲデス",url:"https://ja.wikipedia.org/wiki/%E3%83%91%E3%83%88%E3%83%AA%E3%83%83%E3%82%AF%E3%83%BB%E3%82%B2%E3%83%87%E3%82%B9"},
+  {text:"都市計画とは、将来世代への倫理的責任である。",author:"エベネザー・ハワード",url:"https://ja.wikipedia.org/wiki/%E3%82%A8%E3%83%99%E3%83%8D%E3%82%B6%E3%83%BC%E3%83%BB%E3%83%8F%E3%83%AF%E3%83%BC%E3%83%89"},
+  {text:"社会は都市を作り、都市は社会を作る。",author:"ルイス・マンフォード",url:"https://ja.wikipedia.org/wiki/%E3%83%AB%E3%82%A4%E3%82%B9%E3%83%BB%E3%83%9E%E3%83%B3%E3%83%95%E3%82%A9%E3%83%BC%E3%83%89"},
+];
+
+const DEVIATION_ARCHETYPES = {
+  INDU_SURGE:{
+    name:"産業急拡大",icon:"🏭",color:"#60a5fa",
+    desc:"低迷する経済を立て直すため、市民が工場増設を自発的に推進し始めた。",
+    bias:["low_G","low_MAT"],
+    delta_units:[{f:"FACT",u:3},{f:"POWER",u:1}],
+    remove_units:[{f:"FOREST",u:2},{f:"MUSE",u:1}],
+    instant:{KON:+0.06,ENV:-0.04,HAP:-0.02},
+    cooldown:3
+  },
+  CIVIC_BLOOM:{
+    name:"市民文化の開花",icon:"🎭",color:"#f9a8d4",
+    desc:"抑圧された文化欲求が噴き出し、市民が広場・劇場の建設を要求している。",
+    bias:["high_KON","low_HAP"],
+    delta_units:[{f:"MUSE",u:2},{f:"COMM",u:1}],
+    remove_units:[{f:"FACT",u:2}],
+    instant:{KON:-0.07,HAP:+0.04},
+    cooldown:3
+  },
+  BACK_TO_LAND:{
+    name:"土地への回帰",icon:"🌾",color:"#4ade80",
+    desc:"環境悪化に危機感を持った市民が農地への転換運動を起こしている。",
+    bias:["low_ENV"],
+    delta_units:[{f:"FARM",u:4},{f:"FOREST",u:3}],
+    remove_units:[{f:"FACT",u:3}],
+    instant:{ENV:+0.05,G:-120},
+    cooldown:3
+  },
+  AUTH_ORDER:{
+    name:"秩序の強制",icon:"🚔",color:"#f87171",
+    desc:"混乱を収拾するため、強権的な秩序回復の動きが市内で広まっている。",
+    bias:["high_KON"],
+    delta_units:[{f:"POLICE",u:2},{f:"EPA",u:1}],
+    remove_units:[{f:"MUSE",u:1}],
+    instant:{KON:-0.10,HAP:-0.05,RES:+0.05},
+    cooldown:4
+  }
+};
+
+const CITY_PRESETS = [
+  { id:"EDO_MINI",  name:"江戸小藩（農本）",       desc:"農業・森林重視。環境良好。",
+    delta_units:[{f:"FARM",u:8},{f:"FACT",u:-8},{f:"PORT",u:1},{f:"MUSE",u:2},{f:"FOREST",u:8}],
+    policies:{tax_rate:0.17},
+    signature:{ENV_min:0.80,KON_max:0.30,HAP_min:0.55,label:"田園都市"} },
+  { id:"SZ_MINI",   name:"深圳型（工業+技術）",    desc:"工場・港湾最大化。高収益。",
+    delta_units:[{f:"FACT",u:10},{f:"PORT",u:2},{f:"FARM",u:-3},{f:"FOREST",u:-5},{f:"MUSE",u:1}],
+    policies:{tax_rate:0.22},
+    signature:{G_min:3000,SCI_min:300,HAP_min:0.50,label:"技術立国"} },
+  { id:"SF_MINI",   name:"SF型（学芸+環境）",       desc:"大学・文化・森林で均衡。",
+    delta_units:[{f:"MUSE",u:3},{f:"FOREST",u:4},{f:"FACT",u:-3},{f:"PORT",u:1},{f:"FARM",u:1}],
+    policies:{tax_rate:0.21},
+    signature:{ENV_min:0.78,CUL_min:500,HAP_min:0.58,label:"文化都市"} },
+  { id:"ROT_MINI",  name:"ロッテルダム（貿易）",    desc:"港湾+工業で貿易特化。",
+    delta_units:[{f:"FACT",u:6},{f:"PORT",u:2},{f:"FARM",u:-2},{f:"FOREST",u:-1},{f:"MUSE",u:1}],
+    policies:{tax_rate:0.20},
+    signature:{G_min:2000,POP_min:600,HAP_min:0.50,label:"貿易都市"} },
+  { id:"PAR_MINI",  name:"パリ型（文化）",           desc:"美術館・博物館を増設。幸福高。",
+    delta_units:[{f:"MUSE",u:4},{f:"FOREST",u:1},{f:"FARM",u:-1}],
+    policies:{tax_rate:0.23},
+    signature:{CUL_min:800,HAP_min:0.62,KON_max:0.38,label:"文化首都"} },
+  { id:"SMR_MINI",  name:"サマルカンド（オアシス）",desc:"農業+森林+文化のバランス型。",
+    delta_units:[{f:"FARM",u:5},{f:"FOREST",u:3},{f:"MUSE",u:2},{f:"FACT",u:-3}],
+    policies:{tax_rate:0.16},
+    signature:{ENV_min:0.75,HAP_min:0.55,RES_min:0.35,label:"持続都市"} },
+  { id:"JKT_MINI",  name:"ジャカルタ（急成長）",    desc:"工業+港湾。環境リスク高。",
+    delta_units:[{f:"FACT",u:5},{f:"PORT",u:1},{f:"FOREST",u:-4},{f:"FARM",u:-1},{f:"MUSE",u:1}],
+    policies:{tax_rate:0.19},
+    signature:{POP_min:800,G_min:1500,INF_min:0.60,label:"成長都市"} },
+  { id:"ADD_MINI",  name:"アディスアベバ（農本型）",desc:"農村+森林。緩やかな成長。",
+    delta_units:[{f:"FARM",u:4},{f:"FOREST",u:3},{f:"MUSE",u:1},{f:"FACT",u:-2}],
+    policies:{tax_rate:0.17},
+    signature:{ENV_min:0.72,FOOD_surplus:true,HAP_min:0.52,label:"農本都市"} },
+];
+
+const EVENTS = [
+  { id:"EV_DROUGHT",  name:"大旱魃",   prob:0.07,
+    effect(s){ s.stocks.ENV=Math.max(0,s.stocks.ENV-0.06); s.stocks.FOOD=Math.max(0,s.stocks.FOOD-s.stocks.POP*0.15); },
+    desc:"農地が打撃を受け食料が減少、環境悪化。", good:false },
+  { id:"EV_TURMOIL",  name:"社会騒乱",
+    prob_fn(s){ return s.stocks.KON>0.65?0.12:s.stocks.KON>0.55?0.05:0; },
+    effect(s){ s.stocks.G=Math.max(0,s.stocks.G-150); s.stocks.INF=Math.max(0,s.stocks.INF-0.03); s.stocks.HAP=Math.max(0,s.stocks.HAP-0.06); },
+    desc:"混乱により財政と社会基盤が傷ついた。", good:false },
+  { id:"EV_FLOOD",    name:"洪水",     prob:0.05,
+    effect(s){ s.stocks.MAT=Math.max(0,s.stocks.MAT-80); s.stocks.ENV=Math.max(0,s.stocks.ENV-0.03); },
+    desc:"洪水で資材が流失し、環境が悪化した。", good:false },
+  { id:"EV_TECH_BOOM",name:"技術革新", prob:0.04,
+    effect(s){ s.stocks.SCI+=40; s.stocks.G+=60; },
+    desc:"研究成果が実を結び、科学と財政が向上。", good:true },
+  { id:"EV_HARVEST",  name:"豊作",     prob:0.06,
+    effect(s){ s.stocks.FOOD+=s.stocks.POP*0.3; s.stocks.HAP=Math.min(1,s.stocks.HAP+0.02); },
+    desc:"稀な豊作。食料庫が潤い幸福度が上昇。", good:true },
+  { id:"EV_EPIDEMIC", name:"疫病流行", prob:0.03,
+    effect(s){ s.stocks.POP=Math.max(200,Math.round(s.stocks.POP*0.95)); s.stocks.HAP=Math.max(0,s.stocks.HAP-0.04); },
+    desc:"疫病が流行。人口と幸福度に影響。", good:false },
+];
+
+// 調整済みバランス係数
+const COEFF = {
+  k_knowledge:0.008, k_infra:0.008, env_to_eff:0.75, shortage_penalty:0.50,
+  demand_food_per_capita: 0.50,   // 大幅に引き下げ（旧1.1）
+  maint_mult: 0.15,               // 維持費を15%に圧縮
+  env_damage_mult: 0.25,          // 環境ダメージ軽減
+  pop_growth:{base:0.002,food_surplus_to_growth:0.002,hap_to_growth:0.003,
+              food_shortage_to_decline:-0.006,unhap_to_decline:-0.005},
+  import_food_base:0.15, import_food_port_weight:0.55,
+  env_recovery_rate:0.018,
+  hard_natural_decay:0.04,        // KON自然減衰（旧0.08）
+  hard_to_hap:0.10,               // KON→HAP影響（旧0.28）
+  hard_to_eff:0.06,               // KON→効率影響（旧0.18）
+  hard_to_env:0.05,               // KON→ENV影響（旧0.20）
+  cul_to_hard_emit:0.08,
+  // イベント確率調整
+  event_base_prob_mult: 0.55,     // 基本頻度（旧1.10）
+  event_severity_mult:  0.80,     // 深刻度（旧1.35）
+  event_prob_env_low:   { threshold:0.45, mult:1.40 },
+  event_prob_kon_high:  { threshold:0.60, mult:1.35 },
+  // 危機加速パラメータ
+  crisis_threshold_kon: 0.65,
+  crisis_threshold_env: 0.35,
+  crisis_threshold_hap: 0.28,
+  crisis_accel_per_turn: 0.18,    // ターンごとの危機確率上乗せ
+  crisis_max_turns: 6,
+  research_cost_rule:{ alpha_tier:1.80, alpha_family:1.20, alpha_global:1.10, S_weight:0.80, min_cost:{SCI:40,G:60} }
+};
+
+// ==================== STATE ====================
+const MAP_W=20, MAP_H=15;
+let state=null, map=[], selectedFacility=null, activeSector="RURAL";
+let year=1, logs=[], prevStocks=null, techEffects={};
+
+function genTechs(seed){
+  var result={};
+  var families=["PROD","GREEN","CIVIC"];
+  var rng=seed;
+  function rand(){rng=(rng*1664525+1013904223)&0xffffffff;return(rng>>>0)/0xffffffff;}
+  families.forEach(function(fam){
+    var bank=NAMEBANKS[fam].slice();
+    for(var tier=1;tier<=3;tier++){
+      var idx=Math.floor(rand()*bank.length);
+      var coreName=bank.splice(idx,1)[0];
+      var id="T_"+fam+"_"+tier;
+      var effVal,effVal2;
+      if(fam==="PROD"){effVal=1.05+tier*0.03+rand()*0.02;effVal2=-(0.01+tier*0.01+rand()*0.005);}
+      else if(fam==="GREEN"){effVal=0.008+tier*0.004+rand()*0.003;effVal2=1.02+tier*0.015+rand()*0.01;}
+      else{effVal=1.04+tier*0.025+rand()*0.015;effVal2=-(0.005+tier*0.003);}
+      var effects;
+      if(fam==="PROD") effects=[{target:"FACT",type:"mult",key:"efficiency",value:+effVal.toFixed(3)},{target:"GLOBAL",type:"add",key:"env_sensitivity_offset",value:+effVal2.toFixed(4)}];
+      else if(fam==="GREEN") effects=[{target:"GLOBAL",type:"add",key:"env_recovery_rate",value:+effVal.toFixed(4)},{target:"GLOBAL",type:"mult",key:"NRG_use_eff",value:+effVal2.toFixed(3)}];
+      else effects=[{target:"SECTOR:ARTS",type:"mult",key:"efficiency",value:+effVal.toFixed(3)},{target:"GLOBAL",type:"add",key:"cul_to_kon_absorb",value:+Math.abs(effVal2).toFixed(4)}];
+      var baseSCI=fam==="CIVIC"?80:fam==="GREEN"?70:60;
+      var baseG=fam==="CIVIC"?120:fam==="GREEN"?100:90;
+      result[id]={name:fam==="PROD"?"生産性：":fam==="GREEN"?"保全・緑化：":"社会性："+coreName+TECH_SUFFIXES[tier],
+        family:fam,tier:tier,baseSCI:baseSCI,baseG:baseG,effect:effects,done:false};
+    }
+  });
+  return result;
+}
+
+function calcTechCost(techKey,allTech){
+  var def=allTech[techKey];
+  if(!def) return {SCI:0,G:0};
+  var baseSCI=def.baseSCI||150,baseG=def.baseG||300;
+  var tier=def.tier||1,fam=def.family||"PROD";
+  var nf=0,nt=0;
+  for(var k in allTech){
+    if(k===techKey) continue;
+    if(allTech[k].done){
+      nt++;
+      if(allTech[k].family===fam) nf++;
+    }
+  }
+  var scale=Math.pow(1.80,tier-1)*Math.pow(1.20,nf)*Math.pow(1.10,nt);
+  return{SCI:Math.ceil(Math.max(40,baseSCI*scale)),G:Math.ceil(Math.max(60,baseG*scale))};
+}
+
+function initState(preset){
+  var stocks={POP:300,FOOD:500,MAT:400,NRG:350,G:1500,SCI:0,CUL:0,ENV:0.80,INF:0.40,HAP:0.52,RES:0.12,KON:0.18};
+  var policies={tax_rate:0.15};
+  var sectors={RURAL:{knowledge:0,infra_level:0.3},INDU:{knowledge:0,infra_level:0.5},ARTS:{knowledge:0,infra_level:0.4},NATU:{knowledge:0,infra_level:0.2}};
+  var tech={};
+  for(var k in TECH_TREE) tech[k]={done:false,family:TECH_TREE[k].family,tier:TECH_TREE[k].tier,baseSCI:TECH_TREE[k].baseSCI,baseG:TECH_TREE[k].baseG,effect:TECH_TREE[k].effect,name:TECH_TREE[k].name};
+  if(preset) for(var pk in (preset.policies||{})) policies[pk]=preset.policies[pk];
+  var seed=preset?(preset.id.split("").reduce(function(a,c){return a+c.charCodeAt(0);},0)*31337):42424;
+  var genT=genTechs(seed);
+  for(var gk in genT) tech[gk]=genT[gk];
+  var stanceInit={RURAL:"normal",INDU:"normal",ARTS:"normal",NATU:"normal"};
+  var sig=preset?preset.signature:{ENV_min:0.65,HAP_min:0.50,KON_max:0.45,label:"標準都市"};
+  state={stocks:stocks,policies:policies,sectors:sectors,tech:tech,tileData:{},crisisTurns:0,
+    stance:stanceInit,deviationCooldowns:{},pendingDeviation:null,signature:sig,presetId:preset?preset.id:null};
+
+  map=[];
+  for(let y=0;y<MAP_H;y++){const row=[];for(let x=0;x<MAP_W;x++) row.push({facility:null,sector:null});map.push(row);}
+
+  const placements=preset?buildInitialPlacements(preset):defaultPlacements();
+  let placed=0;
+  for(const p of placements){
+    if(p.y<MAP_H&&p.x<MAP_W&&placed<MAP_W*MAP_H){map[p.y][p.x]={facility:p.f,sector:FACILITY_DEF[p.f]?.sector||null};placed++;}
+  }
+  year=1;logs=[];techEffects={};prevStocks=null;
+  addLog("都市を設立しました（Year 1）","good");
+}
+
+function defaultPlacements(){
+  const places=[
+    [2,2,"FARM"],[3,2,"FARM"],[4,2,"FARM"],[5,2,"FARM"],[6,2,"FARM"],[7,2,"FARM"],
+    [8,3,"FACT"],[9,3,"FACT"],[8,4,"POWER"],
+    [11,2,"FOREST"],[12,2,"FOREST"],[13,2,"FOREST"],[14,2,"FOREST"],[11,3,"FOREST"],
+    [11,5,"RIVER"],[12,5,"RIVER"],
+    [3,6,"MUSE"],[4,6,"COMM"],
+    [6,5,"HOUS"],[7,5,"HOUS"],
+  ];
+  return places.map(([x,y,f])=>({x,y,f}));
+}
+
+function buildInitialPlacements(preset){
+  const base=defaultPlacements();
+  const counts={};
+  for(const p of base) counts[p.f]=(counts[p.f]||0)+1;
+  for(const du of (preset.delta_units||[])){
+    counts[du.f]=Math.max(0,(counts[du.f]||0)+du.u);
+  }
+  const result=[];let xi=0,yi=2;
+  for(const [fac,cnt] of Object.entries(counts)){
+    for(let i=0;i<cnt;i++){
+      result.push({x:xi%MAP_W,y:yi,f:fac});
+      xi++;if(xi%MAP_W===0){yi++;xi=0;}
+    }
+  }
+  return result.filter(p=>p.y<MAP_H);
+}
+
+// ==================== SIMULATION CORE ====================
+function countFacilities(){
+  const counts={};
+  for(const k of Object.keys(FACILITY_DEF)) counts[k]=0;
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    if(!map[y]) continue;
+    const f=map[y][x]&&map[y][x].facility;
+    if(f) counts[f]=(counts[f]||0)+1;
+  }
+  return counts;
+}
+
+var STANCE_OPS  ={active:1.25,normal:1.0,light:0.75};
+var STANCE_MAINT={active:1.20,normal:1.0,light:0.80};
+
+function getFacilityEff(facKey,stk,sec){
+  var def=FACILITY_DEF[facKey];
+  var sectorKey=def.sector;
+  var effENV=1-(1-stk.ENV)*COEFF.env_to_eff;
+  var effINF=1+COEFF.k_infra*(stk.INF-0.4);
+  var effKNW=1+COEFF.k_knowledge*sec[sectorKey].knowledge;
+  var techMult=1.0;
+  if(techEffects[facKey]) techMult*=techEffects[facKey];
+  if(techEffects["SECTOR:"+sectorKey]) techMult*=techEffects["SECTOR:"+sectorKey];
+  var stanceMult=state&&state.stance?STANCE_OPS[state.stance[sectorKey]]||1.0:1.0;
+  var eff=effENV*effINF*effKNW*techMult*stanceMult;
+  eff*=(1-COEFF.hard_to_eff*stk.KON);
+  return Math.max(0.1,eff);
+}
+
+// EV_DEVIATION確率・アーキタイプ選択
+function calcDeviationProb(stk){
+  var S=Math.max(0,stk.KON-0.45)+Math.max(0,0.45-stk.HAP)+Math.max(0,0.65-stk.ENV);
+  var p=0.02+0.25*S+0.35*S*S;
+  return Math.min(0.45,p);
+}
+
+function selectArchetype(stk){
+  var scores={};
+  var s=stk;
+  scores.INDU_SURGE =(s.G<500?0.4:0)+(s.MAT<200?0.3:0);
+  scores.CIVIC_BLOOM=(s.KON>0.55?0.5:0)+(s.HAP<0.40?0.4:0);
+  scores.BACK_TO_LAND=(s.ENV<0.45?0.6:0)+(s.ENV<0.35?0.4:0);
+  scores.AUTH_ORDER =(s.KON>0.65?0.6:0)+(s.HAP<0.35?0.2:0);
+  var best="INDU_SURGE",bestV=0;
+  for(var k in scores){if(scores[k]>bestV){bestV=scores[k];best=k;}}
+  return best;
+}
+
+function applyDeviation(archetypeKey,accepted){
+  var arc=DEVIATION_ARCHETYPES[archetypeKey];
+  if(!arc) return;
+  state.deviationCooldowns[archetypeKey]=(arc.cooldown||3);
+  if(!accepted){
+    addLog("【変動抵抗】 "+arc.name+" を抑制した。G:-200 CUL:-30","warn");
+    state.stocks.G=Math.max(0,state.stocks.G-200);
+    state.stocks.CUL=Math.max(0,state.stocks.CUL-30);
+    if(Math.random()>0.70){addLog("抵抗は失敗した。変動は実行された。","event");accepted=true;}
+    else return;
+  }
+  // instant effects
+  var ie=arc.instant||{};
+  for(var rk in ie){
+    if(state.stocks[rk]!==undefined) state.stocks[rk]=Math.min(rk==="KON"||rk==="HAP"||rk==="ENV"?1:99999,Math.max(0,state.stocks[rk]+ie[rk]));
+  }
+  // build new units on empty tiles
+  var toAdd=arc.delta_units||[];
+  toAdd.forEach(function(du){
+    for(var n=0;n<du.u;n++){
+      var placed=false;
+      for(var y=0;y<MAP_H&&!placed;y++){
+        for(var x=0;x<MAP_W&&!placed;x++){
+          if(map[y]&&!map[y][x].facility){map[y][x]={facility:du.f,sector:FACILITY_DEF[du.f]?FACILITY_DEF[du.f].sector:null};placed=true;}
+        }
+      }
+    }
+  });
+  // remove units
+  var toRm=arc.remove_units||[];
+  toRm.forEach(function(du){
+    var removed=0;
+    for(var y=0;y<MAP_H&&removed<du.u;y++){
+      for(var x=0;x<MAP_W&&removed<du.u;x++){
+        if(map[y]&&map[y][x].facility===du.f){map[y][x]={facility:null,sector:null};removed++;}
+      }
+    }
+  });
+  addLog("【自律変動】 "+arc.name+" が実行された","event");
+}
+
+// Compute one turn's deltas — shared by simulateTurn and calcTurnDeltas
+function computeDeltas(stk,sec,tech_state,counts,rUNIV,rMUSE){
+  let FOOD_prod=0,MAT_prod=0,NRG_prod=0;
+  let SCI_out=0,CUL_out=0,G_gain=0,KON_emit=0,KON_absorb=0;
+  let G_maint=0,MAT_maint=0,NRG_use=0,ENV_damage=0,HAP_out=0;
+
+  for(const [facKey,cnt] of Object.entries(counts)){
+    if(!cnt) continue;
+    const def=FACILITY_DEF[facKey];if(!def) continue;
+    const eff=getFacilityEff(facKey,stk,sec);
+    const io=def.io_base;const n=cnt;
+    if(io.out.FOOD) FOOD_prod+=io.out.FOOD*n*eff*(facKey==="FARM"&&tech_state.T_IRR&&tech_state.T_IRR.done?1.12:1);
+    if(io.out.MAT)  MAT_prod +=io.out.MAT*n*eff;
+    if(io.out.NRG)  NRG_prod +=io.out.NRG*n*eff;
+    if(io.out.SCI)  SCI_out  +=io.out.SCI*n*eff*(facKey==="UNIV"?rUNIV:1);
+    if(io.out.CUL)  CUL_out  +=io.out.CUL*n*eff*(facKey==="MUSE"?rMUSE:1);
+    if(io.out.G)    G_gain   +=io.out.G*n*eff;
+    if(io.out.KON)  KON_emit +=io.out.KON*n*eff;
+    if(io.out.HAP)  HAP_out  +=io.out.HAP*n*eff;
+    ENV_damage+=def.env_sensitivity*n*eff*0.01;
+    var stanceMaintMult=state&&state.stance?STANCE_MAINT[state.stance[def.sector]]||1.0:1.0;
+    if(def.maint_cost.G)   G_maint  +=def.maint_cost.G*n*stanceMaintMult;
+    if(def.maint_cost.MAT) MAT_maint+=def.maint_cost.MAT*n*stanceMaintMult;
+    if(io.in&&io.in.NRG) NRG_use+=io.in.NRG*n*eff;
+    if(["COMM","MUSE","POLICE","WASTE","EPA"].includes(facKey)) KON_absorb+=0.010*n*eff;
+    if(facKey==="FOREST") KON_absorb+=0.003*n*eff;
+  }
+  if(tech_state.T_GRID&&tech_state.T_GRID.done) NRG_use*=0.86;
+  G_maint  *=COEFF.maint_mult;
+  MAT_maint*=COEFF.maint_mult;
+  ENV_damage*=COEFF.env_damage_mult;
+
+  const portCount=counts["PORT"]||0;
+  const foodDemand=stk.POP*COEFF.demand_food_per_capita;
+  const FOOD_before=stk.FOOD+FOOD_prod-foodDemand;
+  let FOOD_import=0;
+  if(FOOD_before<0&&stk.G>0){
+    const importCap=foodDemand*COEFF.import_food_base*(1+COEFF.import_food_port_weight*portCount);
+    FOOD_import=Math.min(importCap,Math.abs(FOOD_before),stk.G*0.4);
+    G_gain-=FOOD_import;
+  }
+
+  const totalFac=Object.values(counts).reduce(function(a,b){return a+b;},0);
+  const matCap=Math.round(300+stk.POP*0.4+totalFac*20);
+  const newFOOD=Math.max(0,stk.FOOD+FOOD_prod+FOOD_import-foodDemand);
+  const newMAT =Math.max(0,Math.min(matCap,stk.MAT+MAT_prod-MAT_maint));
+  const newNRG =Math.max(0,stk.NRG +NRG_prod -NRG_use);
+  const newG   =Math.max(0,stk.G   +G_gain   -G_maint);
+  const newSCI =stk.SCI+SCI_out;
+  const newCUL =stk.CUL+CUL_out;
+
+  const envRec=COEFF.env_recovery_rate+(tech_state.T_STEWARD&&tech_state.T_STEWARD.done?0.012:0);
+  const newENV=Math.min(1,Math.max(0,stk.ENV+envRec-ENV_damage-COEFF.hard_to_env*stk.KON*0.04));
+  const newINF=Math.min(1,Math.max(0,stk.INF+(stk.G>500?0.004:stk.G>150?0.001:-0.002)));
+  const newKON=Math.min(1,Math.max(0,stk.KON+KON_emit-KON_absorb-COEFF.hard_natural_decay*stk.KON));
+  var fr=foodDemand>0?(stk.FOOD+FOOD_prod)/foodDemand:1;
+  var hapFood=fr>1?0.005:(fr<0.5?-0.025:-0.008);
+  // Signature目標達成度でHAP上限を補正
+  var sig=state&&state.signature?state.signature:null;
+  var sigChecks=[];
+  if(sig){
+    if(sig.ENV_min)      sigChecks.push(Math.min(1,stk.ENV/sig.ENV_min));
+    if(sig.KON_max)      sigChecks.push(Math.min(1,sig.KON_max/Math.max(0.01,stk.KON)));
+    if(sig.G_min)        sigChecks.push(Math.min(1,stk.G/sig.G_min));
+    if(sig.SCI_min)      sigChecks.push(Math.min(1,stk.SCI/Math.max(1,sig.SCI_min)));
+    if(sig.CUL_min)      sigChecks.push(Math.min(1,stk.CUL/Math.max(1,sig.CUL_min)));
+    if(sig.POP_min)      sigChecks.push(Math.min(1,stk.POP/sig.POP_min));
+    if(sig.INF_min)      sigChecks.push(Math.min(1,stk.INF/sig.INF_min));
+    if(sig.RES_min)      sigChecks.push(Math.min(1,stk.RES/sig.RES_min));
+    if(sig.FOOD_surplus) sigChecks.push(foodDemand>0?Math.min(1,(stk.FOOD+FOOD_prod)/(foodDemand*1.2)):1);
+  }
+  var sigSat=sigChecks.length>0?sigChecks.reduce(function(a,b){return a+b;},0)/sigChecks.length:0.75;
+  var hapCeiling=Math.min(1,0.30+sigSat*0.70);
+  var rawHAP=stk.HAP+HAP_out+hapFood+CUL_out*0.001-COEFF.hard_to_hap*stk.KON*0.04;
+  if(rawHAP>hapCeiling) rawHAP=hapCeiling+(rawHAP-hapCeiling)*0.10;
+  var newHAP=Math.min(hapCeiling,Math.max(0,rawHAP));
+  const newRES=Math.min(1,Math.max(0,stk.RES+0.001+(stk.ENV>0.65?0.002:0)-stk.KON*0.004));
+
+  const fr2=stk.FOOD/Math.max(1,foodDemand);
+  const gf=COEFF.pop_growth.food_surplus_to_growth*Math.max(0,(fr2-1)/0.2);
+  const gh=COEFF.pop_growth.hap_to_growth*(stk.HAP-0.5);
+  const df=COEFF.pop_growth.food_shortage_to_decline*Math.max(0,(1-fr2)/0.15);
+  const du=COEFF.pop_growth.unhap_to_decline*Math.max(0,(0.5-stk.HAP)/0.3);
+  const netRate=COEFF.pop_growth.base+gf+gh+df+du;
+  // 飢餓による直接人口減少（FOODが底をついた場合）
+  var starvePct=(stk.FOOD<=0)?0.030:(stk.FOOD<foodDemand*0.15?0.012:0);
+  const newPOP=Math.max(0,Math.round(stk.POP*(1+netRate)-stk.POP*starvePct));
+
+  return {
+    G:newG-stk.G, FOOD:newFOOD-stk.FOOD, MAT:newMAT-stk.MAT, NRG:newNRG-stk.NRG,
+    SCI:newSCI-stk.SCI, CUL:newCUL-stk.CUL, POP:newPOP-stk.POP,
+    ENV:newENV-stk.ENV, INF:newINF-stk.INF, HAP:newHAP-stk.HAP,
+    RES:newRES-stk.RES, KON:newKON-stk.KON,
+    _newFOOD:newFOOD,_newMAT:newMAT,_newNRG:newNRG,_newG:newG,
+    _newSCI:newSCI,_newCUL:newCUL,_newENV:newENV,_newINF:newINF,
+    _newKON:newKON,_newHAP:newHAP,_newRES:newRES,_newPOP:newPOP,
+  };
+}
+
+function simulateTurn(){
+  prevStocks={...state.stocks};
+  const s=state.stocks;
+  const counts=countFacilities();
+  const rUNIV=0.8+Math.random()*0.2;
+  const rMUSE=0.8+Math.random()*0.2;
+
+  const d=computeDeltas(s,state.sectors,state.tech,counts,rUNIV,rMUSE);
+
+  // 危機状態の判定・累積
+  const inCrisis=(s.KON>COEFF.crisis_threshold_kon||s.ENV<COEFF.crisis_threshold_env||s.HAP<COEFF.crisis_threshold_hap);
+  if(inCrisis) state.crisisTurns=Math.min(COEFF.crisis_max_turns,(state.crisisTurns||0)+1);
+  else         state.crisisTurns=Math.max(0,(state.crisisTurns||0)-1);
+
+  if(state.crisisTurns>0){
+    const msg=`危機 ${state.crisisTurns}ターン継続中 — イベント確率+${Math.round(state.crisisTurns*COEFF.crisis_accel_per_turn*100)}%`;
+    addLog(msg,"crisis");
+    document.getElementById("crisis-indicator").style.display="inline";
+  } else {
+    document.getElementById("crisis-indicator").style.display="none";
+  }
+
+  // 株式更新
+  s.FOOD=Math.max(0,s.FOOD+d.FOOD);
+  s.MAT =Math.max(0,s.MAT +d.MAT);
+  s.NRG =Math.max(0,s.NRG +d.NRG);
+  s.G   =Math.max(0,s.G   +d.G);
+  s.SCI +=d.SCI;
+  s.CUL +=d.CUL;
+  s.ENV =Math.min(1,Math.max(0,s.ENV+d.ENV));
+  s.INF =Math.min(1,Math.max(0,s.INF+d.INF));
+  s.KON =Math.min(1,Math.max(0,s.KON+d.KON));
+  s.HAP =Math.min(1,Math.max(0,s.HAP+d.HAP));
+  s.RES =Math.min(1,Math.max(0,s.RES+d.RES));
+  s.POP =Math.max(0,Math.round(s.POP+d.POP));
+
+  // セクター知識
+  for(const sec of Object.values(state.sectors)) sec.knowledge=Math.min(10,sec.knowledge+d.SCI*0.0008);
+
+  // イベント（危機加速込み）
+  const crisisBoost=1+Math.min(COEFF.crisis_max_turns,state.crisisTurns)*COEFF.crisis_accel_per_turn;
+  const eventsTriggered=[];
+  for(const ev of EVENTS){
+    const baseProb=ev.prob||(ev.prob_fn?ev.prob_fn(state):0);
+    let prob=baseProb*COEFF.event_base_prob_mult*crisisBoost
+      *(s.ENV<COEFF.event_prob_env_low.threshold?COEFF.event_prob_env_low.mult:1)
+      *(s.KON>COEFF.event_prob_kon_high.threshold?COEFF.event_prob_kon_high.mult:1);
+    if(Math.random()<prob){
+      ev.effect(state);
+      eventsTriggered.push(ev);
+      addLog("【イベント】"+ev.name+": "+ev.desc,ev.good?"good":"event");
+    }
+  }
+
+  // deviationクールダウン
+  for(var dck in state.deviationCooldowns){state.deviationCooldowns[dck]=Math.max(0,state.deviationCooldowns[dck]-1);}
+
+  year++;
+  addLog("Year "+year+" — G:"+Math.round(s.G)+" FOOD:"+Math.round(s.FOOD)+" ENV:"+(s.ENV*100).toFixed(0)+"% KON:"+(s.KON*100).toFixed(0)+"%",null);
+  npcReact(eventsTriggered,d);
+  updateUI();
+
+  // EV_DEVIATION判定
+  if(!state.pendingDeviation){
+    var devProb=calcDeviationProb(s)*COEFF.event_base_prob_mult*(1+Math.min(state.crisisTurns,4)*0.12);
+    var arcKey=selectArchetype(s);
+    var arc=DEVIATION_ARCHETYPES[arcKey];
+    var coolOK=!state.deviationCooldowns[arcKey]||state.deviationCooldowns[arcKey]<=0;
+    if(coolOK&&Math.random()<devProb){
+      state.pendingDeviation={archetypeKey:arcKey};
+      showDeviationModal(arcKey);
+      return; // ターンをいったん止める
+    }
+  }
+
+  // 10年エピグラフ
+  if(year>1&&(year-1)%10===0){
+    var ep=EPIGRAPHS[Math.floor(Math.random()*EPIGRAPHS.length)];
+    showEpigraphModal(ep,year-1);
+    return;
+  }
+
+  // 10年ごとのレポート
+  if(year>1&&(year-1)%10===0) showReportModal(year-1);
+
+  checkEndConditions();
+}
+
+
+// ==================== PREVIEW ====================
+function calcTurnDeltas(){
+  if(!state) return null;
+  const counts=countFacilities();
+  return computeDeltas(state.stocks,state.sectors,state.tech,counts,0.90,0.90);
+}
+
+function advance5Years(){
+  if(!state){addLog("先にゲームを開始してください","warn");return;}
+  for(var i=0;i<5;i++) simulateTurn();
+}
+
+function showPreviewBars(deltas){
+  if(!deltas) return;
+  for(const g of RES_CONFIG) for(const item of g.items){
+    const pEl=document.getElementById("preview-"+item.k);
+    if(!pEl) continue;
+    const cur=state.stocks[item.k];
+    const delta=deltas[item.k]||0;
+    const newVal=Math.max(0,cur+delta);
+    const newPct=Math.min(100,(newVal/item.max)*100);
+    pEl.style.display="block";
+    pEl.style.width=newPct+"%";
+    pEl.style.background=delta>=0?item.color+"99":"#f8717199";
+  }
+}
+
+function hidePreviewBars(){
+  for(const g of RES_CONFIG) for(const item of g.items){
+    const pEl=document.getElementById("preview-"+item.k);
+    if(pEl){pEl.style.display="none";pEl.style.width="0";}
+  }
+}
+
+// ==================== TECH ====================
+function researchTech(techKey){
+  var td=state.tech[techKey];
+  if(!td||td.done) return;
+  var cost=calcTechCost(techKey,state.tech);
+  if(state.stocks.SCI<cost.SCI||state.stocks.G<cost.G){
+    addLog("研究失敗: "+td.name+" — SCI:"+cost.SCI+" G:"+cost.G+" 必要","warn"); return;
+  }
+  state.stocks.SCI-=cost.SCI;
+  state.stocks.G  -=cost.G;
+  td.done=true;
+  addLog("研究完了: "+td.name,"good");
+  var effects=td.effect||[];
+  for(var ei=0;ei<effects.length;ei++){
+    var eff=effects[ei];
+    if(eff.type==="mult") techEffects[eff.target]=(techEffects[eff.target]||1)*eff.value;
+    else techEffects[eff.target]=(techEffects[eff.target]||0)+eff.value;
+  }
+  updateUI();
+}
+
+function checkEndConditions(){
+  var s=state.stocks;
+  if(s.POP<=0) {showModal("敗北：人口消滅","すべての市民が都市を去りました。");return;}
+  if(s.ENV<0.08){showModal("敗北：環境崩壊","環境が回復不能な状態に達しました。");return;}
+  // signature勝利
+  if(year>=50){
+    var sig=state.signature||{};
+    var ok=true;
+    var failReason="";
+    if(sig.ENV_min&&s.ENV<sig.ENV_min){ok=false;failReason="ENV "+((s.ENV*100).toFixed(0))+"% < 目標"+(sig.ENV_min*100)+"%";}
+    if(sig.HAP_min&&s.HAP<sig.HAP_min){ok=false;failReason="HAP "+((s.HAP*100).toFixed(0))+"% < 目標"+(sig.HAP_min*100)+"%";}
+    if(sig.KON_max&&s.KON>sig.KON_max){ok=false;failReason="KON "+((s.KON*100).toFixed(0))+"% > 上限"+(sig.KON_max*100)+"%";}
+    if(sig.G_min&&s.G<sig.G_min){ok=false;failReason="G "+Math.round(s.G)+" < 目標"+sig.G_min;}
+    if(sig.SCI_min&&s.SCI<sig.SCI_min){ok=false;failReason="SCI "+Math.round(s.SCI)+" < 目標"+sig.SCI_min;}
+    if(sig.CUL_min&&s.CUL<sig.CUL_min){ok=false;failReason="CUL "+Math.round(s.CUL)+" < 目標"+sig.CUL_min;}
+    if(sig.POP_min&&s.POP<sig.POP_min){ok=false;failReason="POP "+Math.round(s.POP)+" < 目標"+sig.POP_min;}
+    if(sig.INF_min&&s.INF<sig.INF_min){ok=false;failReason="INF "+((s.INF*100).toFixed(0))+"% < 目標"+(sig.INF_min*100)+"%";}
+    if(sig.RES_min&&s.RES<sig.RES_min){ok=false;failReason="RES "+((s.RES*100).toFixed(0))+"% < 目標"+(sig.RES_min*100)+"%";}
+    if(ok) showModal("勝利："+((sig.label)||"都市完成")+"！","50年間、都市固有の目標を達成し続けました！");
+    else   showModal("50年経過（目標未達）","都市は存続していますが、"+failReason+"。");
+  }
+}
+
+function showDeviationModal(arcKey){
+  var arc=DEVIATION_ARCHETYPES[arcKey];
+  var ie=arc.instant||{};
+  var ieStr=Object.keys(ie).map(function(k){return k+":"+(ie[k]>=0?"+":"")+ie[k];}).join("  ");
+  var addStr=(arc.delta_units||[]).map(function(d){return d.f+"×+"+d.u;}).join(" ");
+  var rmStr=(arc.remove_units||[]).map(function(d){return d.f+"×-"+d.u;}).join(" ");
+  var m=document.getElementById("modal2");
+  document.getElementById("modal2-box").innerHTML=
+    '<h2 style="color:'+arc.color+'">'+arc.icon+' 自律変動：'+arc.name+'</h2>'+
+    '<p>'+arc.desc+'</p>'+
+    '<div style="background:#0a1628;border:1px solid #1a3a60;border-radius:6px;padding:10px;margin:10px 0;font-size:11px">'+
+    '<div style="color:#fbbf24;margin-bottom:4px">即時効果: '+ieStr+'</div>'+
+    '<div style="color:#4ade80">建設: '+addStr+'</div>'+
+    '<div style="color:#f87171">撤去: '+rmStr+'</div>'+
+    '</div>'+
+    '<p style="color:#888;font-size:11px">抵抗: G:-200 / CUL:-30（成功率70%）</p>'+
+    '<button class="modal-btn primary" id="dev-accept">受け入れる</button>'+
+    '<button class="modal-btn warn" id="dev-resist">抵抗する（G:200 CUL:30）</button>';
+  m.classList.add("open");
+  document.getElementById("dev-accept").addEventListener("click",function(){
+    m.classList.remove("open");
+    state.pendingDeviation=null;
+    applyDeviation(arcKey,true);
+    updateUI();checkEndConditions();
+  });
+  document.getElementById("dev-resist").addEventListener("click",function(){
+    m.classList.remove("open");
+    state.pendingDeviation=null;
+    applyDeviation(arcKey,false);
+    updateUI();checkEndConditions();
+  });
+}
+
+function showYearReviewModal(ep,yr){
+  var s=state.stocks;
+  var counts=countFacilities();
+  var totalFac=Object.keys(counts).reduce(function(a,k){return a+(counts[k]||0);},0);
+  var ruralFac=(counts.FARM||0)+(counts.AGRO||0)+(counts.FOREST||0)+(counts.RIVER||0);
+  var induFac=(counts.FACT||0)+(counts.POWER||0)+(counts.PORT||0);
+  var artsFac=(counts.MUSE||0)+(counts.COMM||0)+(counts.UNIV||0);
+  var maxSec=Math.max(ruralFac,induFac,artsFac);
+  var cityType=maxSec===induFac?"工業都市":maxSec===artsFac?"文化都市":"農業・自然都市";
+  var score=Math.round((s.HAP*30)+(s.ENV*25)+((1-s.KON)*20)+(Math.min(s.POP,1000)/1000*15)+(s.INF*10));
+  var sig=state.signature||{};
+  var c=function(v,good,bad){return v?"#4ade80":"#f87171";};
+  var m=document.getElementById("modal2");
+  document.getElementById("modal2-box").innerHTML=
+    '<h2 style="color:#a8d8ea">📖 Year '+yr+' — 時の言葉</h2>'+
+    '<div style="background:#0a1628;border-radius:6px;padding:12px 16px;margin:10px 0">'+
+    '<p style="font-size:14px;color:#e0e0e0;line-height:1.9;font-style:italic;margin-bottom:8px">"'+ep.text+'"</p>'+
+    '<p style="color:#a8d8ea;text-align:right;font-size:11px">— <a href="'+ep.url+'" target="_blank" style="color:#60a5fa">'+ep.author+'</a></p>'+
+    '</div>'+
+    '<div style="border-top:1px solid #1a3a60;margin:12px 0;padding-top:12px">'+
+    '<div style="color:#fbbf24;font-size:13px;font-weight:bold;margin-bottom:10px">📊 '+yr+'年次レポート</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11px">'+
+    cell("都市タイプ",cityType,"#a8d8ea")+
+    cell("総合スコア","<span style=\"font-size:17px;font-weight:bold;color:#fbbf24\">"+score+"</span>","")+
+    cell("目標型",sig.label||"標準","#888")+
+    cell("人口",Math.round(s.POP).toLocaleString()+"人","")+
+    cell("施設数",totalFac+"棟","")+
+    cell("ENV",(s.ENV*100).toFixed(0)+"%",s.ENV>0.6?"#4ade80":"#f87171")+
+    cell("HAP",(s.HAP*100).toFixed(0)+"%",s.HAP>0.5?"#4ade80":"#f87171")+
+    cell("KON",(s.KON*100).toFixed(0)+"%",s.KON<0.4?"#4ade80":"#f87171")+
+    cell("財政 G",Math.round(s.G).toLocaleString(),"")+
+    '</div></div>'+
+    '<button class="modal-btn primary" id="review-ok">続ける</button>';
+  m.classList.add("open");
+  document.getElementById("review-ok").addEventListener("click",function(){
+    m.classList.remove("open");checkEndConditions();
+  });
+}
+function cell(label,val,col){
+  return '<div style="background:#0a1628;border-radius:4px;padding:7px 8px"><div style="color:#666;margin-bottom:2px">'+label+'</div><div style="color:'+(col||"#ccc")+'">'+val+'</div></div>';
+}
+// 旧関数を統合先へ転送
+function showEpigraphModal(ep,yr){showYearReviewModal(ep,yr);}
+function showReportModal(yr){
+  var ep=EPIGRAPHS[Math.floor(Math.random()*EPIGRAPHS.length)];
+  showYearReviewModal(ep,yr);
+}
+
+// ==================== NPC ====================
+const NPC_LINES={
+  low_food:["食料の備蓄が危険水準です！農地拡張か食料輸入を急いでください。","このままでは飢饉になります。FARMを増やしましょう。"],
+  low_env:["環境悪化が深刻です。工場を減らすか、森を増やしましょう。","ENVが低下すると全施設の効率が落ちます。"],
+  high_kon:["市民の不満が蓄積中です。コミュニティや住宅が必要です。","騒乱リスクが高まっています。文化施設への投資を。"],
+  low_hap:["市民の幸福度が低すぎます。食料と文化への投資を見直して。"],
+  low_g:["財政が逼迫しています。工場や美術館からの収益を増やして。"],
+  crisis:["危機が深刻化しています！今すぐ対策を取らないと悪化します。","複数の問題が連鎖しています。優先順位を整理して。"],
+  good:["順調です。このペースを維持しましょう。","バランスが取れた都市運営ですね。","研究を進めると効率が上がります。"],
+  generic:["タイルをクリックして施設を確認できます。","施設を選んで空きタイルに配置できます。"],
+};
+
+function npcReact(events,deltas){
+  const s=state.stocks;
+  let lines=[];
+  if(state.crisisTurns>=3) lines=NPC_LINES.crisis;
+  else if(events.length>0) lines=NPC_LINES.good;
+  else if(s.FOOD<s.POP*COEFF.demand_food_per_capita*1.5) lines=NPC_LINES.low_food;
+  else if(s.ENV<0.4)   lines=NPC_LINES.low_env;
+  else if(s.KON>0.60)  lines=NPC_LINES.high_kon;
+  else if(s.HAP<0.32)  lines=NPC_LINES.low_hap;
+  else if(s.G<200)     lines=NPC_LINES.low_g;
+  else                  lines=NPC_LINES.good;
+  document.getElementById("npc-bubble").textContent=lines[Math.floor(Math.random()*lines.length)];
+}
+
+// ==================== TOOLTIP ====================
+var TOOLTIP_DEFS = {
+  G:    {name:"財政 (G)",         formula:"収入: 工場G+農工G+美術館G / 支出: 全施設維持費×0.15"},
+  FOOD: {name:"食料 (FOOD)",      formula:"産出: 農場+農工+河川 / 消費: POP×0.5/turn / 不足時は自動輸入"},
+  MAT:  {name:"資材 (MAT)",       formula:"産出: 工場+廃棄処理+森林 / 消費: 各施設維持費"},
+  NRG:  {name:"エネルギー (NRG)", formula:"産出: 発電所+河川 / 消費: 工場・大学・美術館などの稼働"},
+  SCI:  {name:"科学 (SCI)",       formula:"産出: 大学のみ / 用途: テクノロジー研究コスト"},
+  CUL:  {name:"文化 (CUL)",       formula:"産出: 美術館+コミュニティ / 効果: KON吸収・HAP向上"},
+  POP:  {name:"人口 (POP)",       formula:"FOOD余剰→増加 / HAP>0.5→増加 / FOOD不足・HAP低下→減少"},
+  ENV:  {name:"環境 (ENV)",       formula:"自然回復(+0.018/turn) / 工場・農業がダメージ / KON高で加速悪化"},
+  INF:  {name:"社会基盤 (INF)",   formula:"G>500で+0.004/turn / G<150で-0.002/turn / 全施設効率に乗算"},
+  HAP:  {name:"幸福度 (HAP)",     formula:"食料+文化で上昇 / KON×0.10で低下 / 上限=0.30+Signature達成度×0.70"},
+  RES:  {name:"回復力 (RES)",     formula:"ENV>0.65で増加 / KON高で減少 / イベントダメージを軽減"},
+  KON:  {name:"困難度 (KON)",     formula:"工場・発電所・住宅が排出 / 文化・警察・森林が吸収 / 自然減衰×0.04/turn"},
+};
+
+function showTooltip(key, ex, ey) {
+  if (!state) return;
+  var def = TOOLTIP_DEFS[key];
+  if (!def) return;
+  var s = state.stocks;
+  var counts = countFacilities();
+
+  // 現在値の文字列
+  var cfg = null;
+  for (var gi = 0; gi < RES_CONFIG.length; gi++) {
+    for (var ii = 0; ii < RES_CONFIG[gi].items.length; ii++) {
+      if (RES_CONFIG[gi].items[ii].k === key) { cfg = RES_CONFIG[gi].items[ii]; break; }
+    }
+  }
+  var valStr = cfg && cfg.pct ? (s[key]*100).toFixed(1)+"%" : Math.round(s[key]).toLocaleString();
+
+  // 先読み計算（簡易）
+  var d = calcTurnDeltas();
+  var delta = d ? (d[key] || 0) : 0;
+  var dStr = cfg && cfg.pct ? ((delta>=0?"+":"")+((delta*100).toFixed(2))+"%")
+                             : ((delta>=0?"+":"")+Math.round(delta));
+  var dCls = delta > 0.0001 ? "tt-pos" : delta < -0.0001 ? "tt-neg" : "tt-neu";
+
+  // KONの内訳を詳細表示
+  var extra = "";
+  if (key === "KON") {
+    var eff_fact  = getFacilityEff("FACT",  s, state.sectors);
+    var eff_power = getFacilityEff("POWER", s, state.sectors);
+    var eff_hous  = getFacilityEff("HOUS",  s, state.sectors);
+    var eff_muse  = getFacilityEff("MUSE",  s, state.sectors);
+    var eff_comm  = getFacilityEff("COMM",  s, state.sectors);
+    var eff_pol   = getFacilityEff("POLICE",s, state.sectors);
+    var eff_for   = getFacilityEff("FOREST",s, state.sectors);
+    var emFact  = (counts.FACT||0)  * 0.008 * eff_fact;
+    var emPow   = (counts.POWER||0) * 0.006 * eff_power;
+    var emHous  = (counts.HOUS||0)  * 0.003 * eff_hous;
+    var emAgro  = (counts.AGRO||0)  * 0.005 * getFacilityEff("AGRO", s, state.sectors);
+    var abMuse  = (counts.MUSE||0)  * 0.010 * eff_muse;
+    var abComm  = (counts.COMM||0)  * 0.010 * eff_comm;
+    var abPol   = (counts.POLICE||0)* 0.010 * eff_pol;
+    var abFor   = (counts.FOREST||0)* 0.003 * eff_for;
+    var abWaste = (counts.WASTE||0) * 0.010 * getFacilityEff("WASTE",s,state.sectors);
+    var abEpa   = (counts.EPA||0)   * 0.010 * getFacilityEff("EPA",  s,state.sectors);
+    var decay   = COEFF.hard_natural_decay * s.KON;
+    var totalEmit  = emFact+emPow+emHous+emAgro;
+    var totalAbsorb= abMuse+abComm+abPol+abFor+abWaste+abEpa;
+    extra =
+      '<div style="margin-top:5px;border-top:1px solid #1a3a60;padding-top:4px">' +
+      '<div class="tt-row"><span>工場排出(×'+( counts.FACT||0)+')</span><span class="tt-neg">+'+emFact.toFixed(4)+'</span></div>'+
+      '<div class="tt-row"><span>発電所排出(×'+(counts.POWER||0)+')</span><span class="tt-neg">+'+emPow.toFixed(4)+'</span></div>'+
+      '<div class="tt-row"><span>住宅排出(×'+(counts.HOUS||0)+')</span><span class="tt-neg">+'+emHous.toFixed(4)+'</span></div>'+
+      '<div class="tt-row"><span>文化等吸収</span><span class="tt-pos">-'+totalAbsorb.toFixed(4)+'</span></div>'+
+      '<div class="tt-row"><span>自然減衰</span><span class="tt-pos">-'+decay.toFixed(4)+'</span></div>'+
+      '<div class="tt-row" style="border-top:1px solid #1a3a60;margin-top:3px;padding-top:3px"><span>純変動</span>'+
+        '<span class="'+(totalEmit-totalAbsorb-decay>0?"tt-neg":"tt-pos")+'">'+(totalEmit-totalAbsorb-decay>=0?"+":"")+((totalEmit-totalAbsorb-decay)).toFixed(4)+'</span></div>'+
+      '</div>';
+  }
+
+  var tt = document.getElementById("tooltip");
+  tt.innerHTML =
+    '<div class="tt-title">'+def.name+'</div>'+
+    '<div class="tt-formula">'+def.formula+'</div>'+
+    '<div class="tt-row"><span>現在値:</span><span>'+valStr+'</span></div>'+
+    '<div class="tt-row"><span>次ターン予測:</span><span class="'+dCls+'">'+dStr+'</span></div>'+
+    extra;
+  tt.style.display = "block";
+  var tw = 230, th = tt.offsetHeight || 120;
+  var tx = ex + 14, ty = ey - 10;
+  if (tx + tw > window.innerWidth)  tx = ex - tw - 10;
+  if (ty + th > window.innerHeight) ty = ey - th - 4;
+  tt.style.left = tx + "px";
+  tt.style.top  = ty + "px";
+}
+
+function hideTooltip() {
+  document.getElementById("tooltip").style.display = "none";
+}
+
+// ==================== CANVAS ====================
+const TILE_SIZE=40;
+let canvas,ctx,offsetX=0,offsetY=0;
+let isDragging=false,dragStart={x:0,y:0};
+let hoverTilePos=null;
+
+function initCanvas(){
+  canvas=document.getElementById("map-canvas");
+  ctx=canvas.getContext("2d");
+  resizeCanvas();
+  canvas.addEventListener("click",onCanvasClick);
+  canvas.addEventListener("mousedown",e=>{
+    if(e.button===1||e.button===2){isDragging=true;dragStart={x:e.clientX-offsetX,y:e.clientY-offsetY};}
+  });
+  canvas.addEventListener("mousemove",e=>{
+    if(isDragging){offsetX=e.clientX-dragStart.x;offsetY=e.clientY-dragStart.y;drawMap();}
+    else hoverTile(e);
+  });
+  canvas.addEventListener("mouseup",()=>isDragging=false);
+  canvas.addEventListener("contextmenu",e=>e.preventDefault());
+  canvas.addEventListener("wheel",e=>e.preventDefault(),{passive:false});
+  window.addEventListener("resize",resizeCanvas);
+}
+
+function resizeCanvas(){
+  const wrap=document.getElementById("canvas-wrap");
+  canvas.width=wrap.clientWidth;canvas.height=wrap.clientHeight;
+  drawMap();
+}
+
+function hoverTile(e){
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left-offsetX,my=e.clientY-rect.top-offsetY;
+  const tx=Math.floor(mx/TILE_SIZE),ty=Math.floor(my/TILE_SIZE);
+  if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H&&map[ty]){
+    hoverTilePos={x:tx,y:ty};
+    const f=map[ty][tx].facility;
+    document.getElementById("status-msg").textContent=
+      f?("["+tx+","+ty+"] "+FACILITY_DEF[f].name+" — クリックで撤去")
+       :("["+tx+","+ty+"] 空き地 — クリックで配置");
+  } else hoverTilePos=null;
+  drawMap();
+}
+
+function onCanvasClick(e){
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left-offsetX,my=e.clientY-rect.top-offsetY;
+  const tx=Math.floor(mx/TILE_SIZE),ty=Math.floor(my/TILE_SIZE);
+  if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H||!map[ty]) return;
+  const tile=map[ty][tx];
+  if(tile.facility){
+    const def=FACILITY_DEF[tile.facility];
+    tile.facility=null;tile.sector=null;
+    addLog("撤去: "+def.name+" ["+tx+","+ty+"]","warn");
+  } else if(selectedFacility){
+    const def=FACILITY_DEF[selectedFacility];
+    const cost=def.build_cost;
+    if(!Object.entries(cost).every(([r,v])=>state.stocks[r]>=v)){
+      addLog("建設不可: "+def.name+" — 資源不足 ("+Object.entries(cost).map(([r,v])=>r+":"+v).join(", ")+")","warn");
+      return;
+    }
+    for(const [r,v] of Object.entries(cost)) state.stocks[r]-=v;
+    tile.facility=selectedFacility;tile.sector=def.sector;
+    addLog("建設: "+def.name+" ["+tx+","+ty+"]","good");
+  }
+  drawMap();updateUI();
+}
+
+function drawMap(){
+  if(!ctx) return;
+  if(!map||map.length===0){ctx.clearRect(0,0,canvas.width,canvas.height);return;}
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    if(!map[y]) continue;
+    const px=x*TILE_SIZE+offsetX,py=y*TILE_SIZE+offsetY;
+    const tile=map[y][x];
+    const isHover=hoverTilePos&&hoverTilePos.x===x&&hoverTilePos.y===y;
+    ctx.fillStyle=tile.facility?(FACILITY_DEF[tile.facility].color+"2a"):(isHover&&selectedFacility?"#1a3a6033":"#0d0d22");
+    ctx.fillRect(px+1,py+1,TILE_SIZE-2,TILE_SIZE-2);
+    ctx.strokeStyle=isHover?"#a8d8ea55":"#1a2a4a";
+    ctx.strokeRect(px,py,TILE_SIZE,TILE_SIZE);
+    if(isHover){
+      ctx.strokeStyle=selectedFacility?"#e9456099":"#a8d8ea77";
+      ctx.lineWidth=2;ctx.strokeRect(px+1,py+1,TILE_SIZE-2,TILE_SIZE-2);ctx.lineWidth=1;
+    }
+    if(tile.facility){
+      const def=FACILITY_DEF[tile.facility];
+      ctx.fillStyle=def.color;ctx.fillRect(px+1,py+1,5,5);
+      ctx.font="20px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(def.icon,px+TILE_SIZE/2,py+TILE_SIZE/2);
+    }
+  }
+}
+
+// ==================== UI ====================
+const RES_CONFIG=[
+  {group:"経済",items:[
+    {k:"G",   label:"G",   max:5000,color:"#fbbf24"},
+    {k:"FOOD",label:"FOOD",max:3000,color:"#4ade80"},
+    {k:"MAT", label:"MAT", max:2000,color:"#60a5fa"},
+    {k:"NRG", label:"NRG", max:1500,color:"#f97316"},
+  ]},
+  {group:"知識",items:[
+    {k:"SCI", label:"SCI", max:1500,color:"#a78bfa"},
+    {k:"CUL", label:"CUL", max:1500,color:"#f9a8d4"},
+    {k:"POP", label:"POP", max:3000,color:"#86efac"},
+  ]},
+  {group:"社会指標",items:[
+    {k:"ENV", label:"ENV", max:1,color:"#34d399",pct:true},
+    {k:"INF", label:"INF", max:1,color:"#7dd3fc",pct:true},
+    {k:"HAP", label:"HAP", max:1,color:"#fde68a",pct:true},
+    {k:"RES", label:"RES", max:1,color:"#c4b5fd",pct:true},
+    {k:"KON", label:"KON", max:1,color:"#f87171",pct:true},
+  ]},
+];
+
+function buildResourcesUI(){
+  const el=document.getElementById("resources");el.innerHTML="";
+  for(const g of RES_CONFIG){
+    const gDiv=document.createElement("div");gDiv.className="res-group";
+    gDiv.innerHTML='<div class="res-group-title">'+g.group+'</div>';
+    for(const item of g.items){
+      const row=document.createElement("div");row.className="res-row";
+      row.innerHTML=
+        '<span class="res-name">'+item.label+'</span>'+
+        '<div class="res-bar-wrap">'+
+          '<div class="res-bar" id="bar-'+item.k+'" style="background:'+item.color+'"></div>'+
+          '<div class="res-preview-bar" id="preview-'+item.k+'"></div>'+
+        '</div>'+
+        '<span class="res-val" id="val-'+item.k+'">-</span>'+
+        '<span class="res-delta" id="delta-'+item.k+'"></span>';
+      (function(k){
+        row.addEventListener("mousemove", function(e){ showTooltip(k, e.clientX, e.clientY); });
+        row.addEventListener("mouseleave", hideTooltip);
+      })(item.k);
+      gDiv.appendChild(row);
+    }
+    el.appendChild(gDiv);
+  }
+}
+
+function updateResourcesUI(){
+  if(!state) return;
+  const s=state.stocks;
+  for(const g of RES_CONFIG) for(const item of g.items){
+    const val=s[item.k];
+    const pct=Math.min(100,(val/item.max)*100);
+    const bar=document.getElementById("bar-"+item.k);
+    const valEl=document.getElementById("val-"+item.k);
+    const dEl=document.getElementById("delta-"+item.k);
+    if(bar) bar.style.width=pct+"%";
+    if(valEl) valEl.textContent=item.pct?(val*100).toFixed(0)+"%":Math.round(val).toLocaleString();
+    if(dEl&&prevStocks){
+      const d=val-prevStocks[item.k];
+      dEl.textContent=item.pct?((d>=0?"+":"")+((d*100).toFixed(1))+"%"):((d>=0?"+":"")+Math.round(d));
+      dEl.style.color=d>0?"#4ade80":d<0?"#f87171":"#666";
+    }
+  }
+  document.getElementById("year-display").textContent="Year "+year;
+}
+
+var SECTOR_LABELS={RURAL:"🌾 農村",INDU:"🏭 産業",ARTS:"🎭 学芸",NATU:"🌿 自然"};
+
+function buildFacilityUI(){
+  var el=document.getElementById("facility-list");el.innerHTML="";
+
+  // ── スタンス選択（タブ内上部）──
+  var stanceWrap=document.createElement("div");stanceWrap.id="facility-stance";
+  var curSt=state&&state.stance?state.stance[activeSector]:"normal";
+  var sDefs=[
+    {key:"active",label:"⬆ 積極",sub:"効率+25% / 維持+20%",cls:"s-active"},
+    {key:"normal",label:"〇 標準",sub:"通常運営",          cls:"s-normal"},
+    {key:"light", label:"⬇ 軽量",sub:"効率-25% / 維持-20%",cls:"s-light"}
+  ];
+  var sh='<div class="stance-sec-label">'+(SECTOR_LABELS[activeSector]||activeSector)+' 運営方針</div>';
+  sh+='<div class="stance-row-btns">';
+  sDefs.forEach(function(sd){
+    var on=curSt===sd.key;
+    sh+='<div class="stance-row-btn'+(on?" "+sd.cls:"")+'" data-sec="'+activeSector+'" data-st="'+sd.key+'">'
+      +sd.label+'<br><span style="font-size:9px;opacity:0.7">'+sd.sub+'</span></div>';
+  });
+  sh+='</div>';
+  stanceWrap.innerHTML=sh;
+  stanceWrap.querySelectorAll(".stance-row-btn").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(!state) return;
+      state.stance[b.dataset.sec]=b.dataset.st;
+      buildFacilityUI();
+      var d=calcTurnDeltas();showPreviewBars(d);
+    });
+  });
+  el.appendChild(stanceWrap);
+
+  // ── 施設リスト ──
+  var keys=Object.keys(FACILITY_DEF);
+  for(var i=0;i<keys.length;i++){
+    var key=keys[i];var def=FACILITY_DEF[key];
+    if(def.sector!==activeSector) continue;
+    var btn=document.createElement("div");
+    btn.className="fac-btn"+(selectedFacility===key?" selected":"");
+    var costArr=Object.keys(def.build_cost).map(function(r){return r+":"+def.build_cost[r];});
+    btn.innerHTML=
+      '<span class="fac-icon">'+def.icon+'</span>'+
+      '<div class="fac-info">'+
+        '<div>'+def.name+'</div>'+
+        '<div class="fac-cost">建設: '+costArr.join(" ")+'</div>'+
+      '</div>';
+    (function(k,d2){btn.addEventListener("click",function(){
+      selectedFacility=selectedFacility===k?null:k;
+      buildFacilityUI();
+      document.getElementById("status-msg").textContent=
+        selectedFacility?d2.name+"を配置中 — タイルをクリック":"施設を選んでください";
+    });})(key,def);
+    el.appendChild(btn);
+  }
+}
+
+function buildTechUI(){
+  var el=document.getElementById("tech-panel");el.innerHTML="";
+  if(!state) return;
+  var allTech=state.tech;
+  // family color map
+  var fcol={PROD:"#60a5fa",GREEN:"#4ade80",CIVIC:"#f9a8d4"};
+  // sort: base techs first, then generated by family/tier
+  var keys=Object.keys(allTech).sort(function(a,b){
+    var at=allTech[a],bt=allTech[b];
+    var af=at.family||"",bf=bt.family||"";
+    if(af!==bf) return af<bf?-1:1;
+    return (at.tier||0)-(bt.tier||0);
+  });
+  keys.forEach(function(key){
+    var td=allTech[key];if(!td) return;
+    var done=td.done;
+    var cost=calcTechCost(key,allTech);
+    var canAfford=state.stocks.SCI>=cost.SCI&&state.stocks.G>=cost.G;
+    var fam=td.family||"PROD";
+    var col=fcol[fam]||"#a8d8ea";
+    var tierStr=td.tier?'<span class="tech-tier" style="color:'+col+'">'+["I","II","III","IV"][td.tier-1]||"?"+'</span>':"";
+    var btn=document.createElement("div");
+    btn.className="tech-btn"+(done?" done":"");
+    btn.innerHTML=
+      '<span style="color:'+col+'">'+(done?"✅":"🔬")+'</span>'+
+      '<div style="flex:1"><div style="color:'+(done?"#4ade80":col)+'">'+td.name+tierStr+'</div>'+
+      '<div style="color:#555;font-size:10px">SCI:'+cost.SCI+' G:'+cost.G+'</div></div>';
+    if(!done){
+      btn.style.opacity=canAfford?"1":"0.45";
+      if(canAfford){
+        (function(k){btn.addEventListener("click",function(){researchTech(k);});})(key);
+      }
+    }
+    el.appendChild(btn);
+  });
+}
+
+function buildStanceUI(){
+  var el=document.getElementById("stance-bar");
+  if(!el||!state) return;
+  el.innerHTML="";
+  var sectors=["RURAL","INDU","ARTS","NATU"];
+  var labels={RURAL:"農",INDU:"産",ARTS:"芸",NATU:"然"};
+  var stances=["active","normal","light"];
+  var stanceLabel={active:"積",normal:"標",light:"軽"};
+  sectors.forEach(function(sec){
+    var grp=document.createElement("div");grp.className="stance-group";
+    var lbl=document.createElement("div");lbl.className="stance-label";lbl.textContent=labels[sec];
+    grp.appendChild(lbl);
+    stances.forEach(function(st){
+      var btn=document.createElement("div");btn.className="stance-btn";
+      var cur=state.stance[sec];
+      if(cur===st){
+        btn.className="stance-btn "+(st==="active"?"active-stance":st==="light"?"light-stance":"active");
+      }
+      btn.textContent=stanceLabel[st];
+      btn.title=(st==="active"?"積極（効率+25% 維持費+20%）":st==="light"?"軽量（効率-25% 維持費-20%）":"標準");
+      (function(s2,st2){btn.addEventListener("click",function(){state.stance[s2]=st2;buildStanceUI();if(state){var d=calcTurnDeltas();showPreviewBars(d);}});})(sec,st);
+      grp.appendChild(btn);
+    });
+    el.appendChild(grp);
+  });
+}
+
+function updateUI(){
+  updateResourcesUI();buildFacilityUI();buildTechUI();drawMap();
+  if(state){var d=calcTurnDeltas();showPreviewBars(d);}
+}
+
+function addLog(msg,type){
+  logs.unshift({msg,type,year});
+  const el=document.getElementById("log-panel");
+  el.innerHTML=logs.slice(0,40).map(l=>'<div class="log-entry '+(l.type||"")+'">'+l.msg+'</div>').join("");
+}
+
+var GEMINI_LINKS='<div style="margin-top:12px;padding:10px;background:#0a1628;border:1px solid #1a3a60;border-radius:6px">'+
+  '<p style="color:#a8d8ea;font-size:12px;margin-bottom:6px">🤖 AIと一緒に遊ぶGemini版もあります：</p>'+
+  '<p><a href="https://gemini.google.com/gem/1o_kjDU9WgumOgOeLsf8Nid3Bm2HHaifL?usp=sharing" target="_blank" style="color:#60a5fa;font-size:12px">▶ Gemini版 Cities: OutRuler</a></p>'+
+  '</div>';
+
+function showModal(title,body){
+  var isEnd=(title.indexOf("敗北")>=0||title.indexOf("勝利")>=0);
+  var m=document.getElementById("modal");
+  document.getElementById("modal-box").innerHTML=
+    '<h2>'+title+'</h2><p>'+body+'</p>'+
+    '<p style="color:#888;font-size:11px">Year: '+year+' | POP: '+Math.round(state&&state.stocks.POP||0).toLocaleString()+' | ENV: '+((state&&state.stocks.ENV||0)*100).toFixed(0)+'%</p>'+
+    (isEnd?GEMINI_LINKS:'')+
+    '<button class="modal-btn primary" onclick="buildPresetUI()">新しいゲーム</button>';
+  m.classList.add("open");
+}
+
+// ==================== PRESET UI ====================
+function buildPresetUI(){
+  const m=document.getElementById("modal");
+  const box=document.getElementById("modal-box");
+  box.innerHTML='<h2>Cities: OutRuler</h2><p>都市プリセットを選んでゲームを開始してください。</p><div id="preset-grid"></div><button class="modal-btn primary" id="btn-cs">カスタム（標準設定）</button>';
+  m.classList.add("open");
+  const grid=document.getElementById("preset-grid");
+  for(const p of CITY_PRESETS){
+    const card=document.createElement("div");card.className="preset-card";
+    card.innerHTML='<h3>'+p.name+'</h3><p>'+p.desc+'</p>';
+    card.addEventListener("click",()=>{
+      m.classList.remove("open");
+      initState(p);
+      document.getElementById("header-preset").textContent=p.name;
+      buildResourcesUI();updateUI();
+    });
+    grid.appendChild(card);
+  }
+  document.getElementById("btn-cs").addEventListener("click",()=>{
+    m.classList.remove("open");
+    initState(null);
+    document.getElementById("header-preset").textContent="標準";
+    buildResourcesUI();updateUI();
+  });
+}
+
+// ==================== SAVE / LOAD ====================
+document.getElementById("btn-save").addEventListener("click",()=>{
+  if(!state){addLog("先にゲームを開始してください","warn");return;}
+  const data=JSON.stringify({state,map,year,logs});
+  const a=document.createElement("a");
+  a.href="data:application/json,"+encodeURIComponent(data);
+  a.download="outrule_year"+year+".json";a.click();
+});
+document.getElementById("btn-load").addEventListener("click",()=>{
+  const inp=document.createElement("input");inp.type="file";inp.accept=".json";
+  inp.addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        state=d.state;map=d.map;year=d.year;logs=d.logs||[];
+        techEffects={};
+        for(const [k,v] of Object.entries(state.tech||{})){
+          if(v.done&&TECH_TREE[k]) for(const eff of TECH_TREE[k].effect){
+            if(eff.type==="mult") techEffects[eff.target]=(techEffects[eff.target]||1)*eff.value;
+            else techEffects[eff.target]=(techEffects[eff.target]||0)+eff.value;
+          }
+        }
+        buildResourcesUI();updateUI();addLog("セーブデータを読み込みました","good");
+        document.getElementById("log-panel").innerHTML=logs.slice(0,40).map(l=>'<div class="log-entry '+(l.type||"")+'">'+l.msg+'</div>').join("");
+      }catch(err){alert("読み込み失敗: "+err.message);}
+    };r.readAsText(f);
+  });inp.click();
+});
+
+document.getElementById("btn-turn").addEventListener("click",function(){
+  if(!state){addLog("先にゲームを開始してください","warn");return;}
+  simulateTurn();
+});
+document.getElementById("btn-5year").addEventListener("click",advance5Years);
+
+document.querySelectorAll(".sector-tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".sector-tab").forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");activeSector=tab.dataset.sector;buildFacilityUI();
+  });
+});
+
+// ==================== INIT ====================
+buildResourcesUI();
+initCanvas();
+buildPresetUI();
+</script>
+</body>
+</html>
