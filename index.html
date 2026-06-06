@@ -569,7 +569,11 @@ const COEFF = {
 };
 
 // ==================== STATE ====================
-const MAP_W=20, MAP_H=15;
+let MAP_W=20, MAP_H=15;
+function applyMapDimensions(){
+  if(window.innerWidth<=768){MAP_W=7;MAP_H=12;}
+  else{MAP_W=20;MAP_H=15;}
+}
 let state=null, map=[], selectedFacility=null, activeSector="RURAL";
 let year=1, logs=[], prevStocks=null, techEffects={};
 
@@ -636,7 +640,8 @@ function initState(preset){
   map=[];
   for(let y=0;y<MAP_H;y++){const row=[];for(let x=0;x<MAP_W;x++) row.push({facility:null,sector:null});map.push(row);}
 
-  const placements=preset?buildInitialPlacements(preset):defaultPlacements();
+  // モバイル時はMAP_Wが小さいのでbuildInitialPlacementsで自動折り返し
+  const placements=(preset||MAP_W<20)?buildInitialPlacements(preset||{}):defaultPlacements();
   let placed=0;
   for(const p of placements){
     if(p.y<MAP_H&&p.x<MAP_W&&placed<MAP_W*MAP_H){map[p.y][p.x]={facility:p.f,sector:FACILITY_DEF[p.f]?.sector||null};placed++;}
@@ -1702,6 +1707,7 @@ function buildPresetUI(){
     card.innerHTML='<h3>'+p.name+'</h3><p>'+p.desc+'</p>';
     card.addEventListener("click",()=>{
       m.classList.remove("open");
+      applyMapDimensions();
       initState(p);
       document.getElementById("header-preset").textContent=p.name;
       buildResourcesUI();updateUI();
@@ -1710,6 +1716,7 @@ function buildPresetUI(){
   }
   document.getElementById("btn-cs").addEventListener("click",()=>{
     m.classList.remove("open");
+    applyMapDimensions();
     initState(null);
     document.getElementById("header-preset").textContent="標準";
     buildResourcesUI();updateUI();
@@ -1733,6 +1740,8 @@ document.getElementById("btn-load").addEventListener("click",()=>{
       try{
         const d=JSON.parse(ev.target.result);
         state=d.state;map=d.map;year=d.year;logs=d.logs||[];
+        // ロード後はマップデータ実寸に合わせる
+        if(map&&map.length>0){MAP_H=map.length;MAP_W=map[0]?map[0].length:MAP_W;}
         techEffects={};
         for(const [k,v] of Object.entries(state.tech||{})){
           if(v.done&&TECH_TREE[k]) for(const eff of TECH_TREE[k].effect){
